@@ -4,3 +4,6 @@
 - Always use `pnpm` as the package manager.
 - Production URL: spcfarm.vercel.app
 - App is deployed automatically to production on push to GitHub, no need to manually deploy. Use vercel cli to check deployment status.
+- You have Vercel, Convex, shadcn, GitHub, and X (Twitter) skills available. Before making any changes involving these, look up the relevant skill instead of relying on memory.
+- When dealing with admin dashboards, prefer the Convex, Vercel, and GitHub CLIs instead of opening dashboards. Run them with `--help` when stuck instead of relying on memory. If a required admin-dashboard action cannot be done with a CLI, use the Computer Use skill to control Dia, where these dashboards are logged in.
+- You also have access to control and view browsers. Use either the in-app browser (`@browser` skill) or the Computer Use skill to control Dia. To verify work, prefer the in-app browser for opening localhost or production URLs. Use Computer Use to control Dia only for other use cases, such as controlling admin dashboards.
