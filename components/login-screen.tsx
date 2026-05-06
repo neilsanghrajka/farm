@@ -3,7 +3,14 @@
 import { useAuthActions, useConvexAuth } from "@convex-dev/auth/react"
 import { useMutation, useQuery } from "convex/react"
 import { LockKeyhole, Mail, Sprout, UserRound } from "lucide-react"
-import { FormEvent, useEffect, useId, useRef, useState } from "react"
+import {
+  FormEvent,
+  ReactNode,
+  useEffect,
+  useId,
+  useRef,
+  useState,
+} from "react"
 
 import { Button } from "@/components/ui/button"
 import { api } from "@/convex/_generated/api"
@@ -43,7 +50,7 @@ function getValidationError(form: LoginForm) {
   return null
 }
 
-export function LoginScreen() {
+export function LoginScreen({ children }: { children?: ReactNode }) {
   const { isAuthenticated, isLoading } = useConvexAuth()
   const { signIn, signOut } = useAuthActions()
   const viewer = useQuery(api.users.current)
@@ -147,6 +154,10 @@ export function LoginScreen() {
   }
 
   if (isAuthenticated) {
+    if (viewer?.profile && children) {
+      return <>{children}</>
+    }
+
     return (
       <main className="flex min-h-svh items-center justify-center bg-background px-6 py-8 text-foreground">
         <section className="flex w-full max-w-[22rem] flex-col gap-6">
