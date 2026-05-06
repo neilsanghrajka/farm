@@ -1,0 +1,22 @@
+# macOS
+.DS_Store
+
+# Editor files
+.vscode/
+.idea/
+*.swp
+
+# Environment files
+.env
+.env.*
+
+# Logs and temporary files
+*.log
+tmp/
+temp/
+
+# Dependency and build output
+node_modules/
+dist/
+build/
+coverage/
