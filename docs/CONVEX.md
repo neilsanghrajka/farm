@@ -99,16 +99,20 @@ repo config is in `convex.json`:
 }
 ```
 
-Refresh managed Convex AI guidance with:
+Refresh managed Convex AI guidance only when needed:
 
 ```bash
 pnpm exec convex ai-files install
 ```
 
-On this machine, the managed skill install step currently fails because the npm
-cache contains root-owned files. The AI files still install correctly, and the
-repo already has Convex skills in `.agents/skills`. To retry the managed skill
-install later, fix the npm cache ownership or run the command from an
+Before committing after a refresh, restore `CLAUDE.md` to `Refer to @AGENTS.md`
+only. `CLAUDE.md` is intentionally just a pointer, but Convex currently rewrites
+it during `ai-files install`.
+
+As of 2026-05-06, the managed skill install step still fails on this machine
+because the npm cache contains root-owned files. The AI files install correctly,
+and the repo already has Convex skills in `.agents/skills`. To retry the managed
+skill install later, fix the npm cache ownership or run the command from an
 environment with a writable npm cache.
 
 ## CLI vs MCP
