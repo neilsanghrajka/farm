@@ -1,3 +1,1 @@
-# Claude
-
-TODO: Add project-specific Claude guidance.
+Refer to @AGENTS.md
