@@ -15,6 +15,8 @@ Define the settings area for account management, X account linking, and Farm mem
 - View Farms the user belongs to.
 - Manage Farm-level actions the user is allowed to take.
 
+Detailed X linking behavior is owned by `docs/features/01_X_LOGIN.md`.
+
 ## Key Flows
 
 - User opens Settings from the main app.
@@ -34,5 +36,6 @@ Define the settings area for account management, X account linking, and Farm mem
 - Settings clearly shows whether an X account is linked.
 - A user can start X OAuth from Settings.
 - A user can disconnect their X account.
+- Disconnecting X returns Home to the missing-X blocked state.
 - A user can see Farms they belong to.
 - Admin-only Farm actions are only available to Farm admins.

@@ -15,9 +15,12 @@ Define the main app screen for requesting engagement, viewing active statuses, a
 - Surface account setup needs, such as missing X linkage.
 - Link to post details, Farm details, and Settings.
 
+Detailed missing-X blocking behavior is owned by
+`docs/features/01_X_LOGIN.md`.
+
 ## Key Flows
 
-- User lands on Home after onboarding or login.
+- User lands on Home after login.
 - User requests engagement for a post.
 - User checks active request progress.
 - User switches between Farms or navigates to Farm detail.
@@ -37,3 +40,5 @@ Define the main app screen for requesting engagement, viewing active statuses, a
 - If the user belongs to one Farm, it can be selected by default.
 - Active requests show enough status to understand current progress.
 - Empty states guide users toward the next useful action.
+- If X is not linked, Home disables request engagement and routes the user to
+  Settings to connect X.
