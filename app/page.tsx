@@ -1,3 +1,4 @@
+import { ConvexStatus } from "@/app/convex-status"
 import { Button } from "@/components/ui/button"
 
 export default function Page() {
@@ -10,6 +11,7 @@ export default function Page() {
           <p>We&apos;ve already added the button component for you.</p>
           <Button className="mt-2">Button</Button>
         </div>
+        <ConvexStatus />
         <div className="font-mono text-xs text-muted-foreground">
           (Press <kbd>d</kbd> to toggle dark mode)
         </div>
