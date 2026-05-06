@@ -5,6 +5,7 @@
 - Never edit `CLAUDE.md`; it is intentionally only a pointer to `AGENTS.md`.
 - Production URL: spcfarm.vercel.app
 - App is deployed automatically to production on push to GitHub, no need to manually deploy. Use vercel cli to check deployment status.
+- Product requirements live in `docs/PRD.md`; keep it lightweight, and when product features change, update the relevant section plus append a dated amendment instead of creating a heavy spec there.
 - Cleanup after yourself: remove any open ports, background shells, background agents, temp artifacts, screenshots, logs, and other run-specific leftovers, but do not remove build caches or other artifacts that help future builds run faster.
 - For Convex workflows, read `docs/CONVEX.md` before changing backend functions, deployments, or Convex env vars.
 - You have Vercel, Convex, shadcn, GitHub, and X (Twitter) skills available. Before making any changes involving these, look up the relevant skill instead of relying on memory.
