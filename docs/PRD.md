@@ -136,6 +136,20 @@ Acceptance criteria:
 
 Farm should feel sleek, lightweight, and app-like. The primary experience should be fast and focused: onboard, connect X, join or create a Farm, submit a post, and see request status. The product should avoid heavy marketing surfaces inside the app and should behave as much like a single-page app as the stack allows.
 
+## UI and Platform Direction
+
+Farm should be designed mobile-first as a touch-friendly progressive web app that users can install on their phones. The core flows should feel natural on a narrow phone viewport, with comfortable tap targets and simple navigation.
+
+The desktop web app should use the same focused product surface rather than expanding into a wide dashboard. On larger screens, Farm should still feel like a narrow app: centered, constrained, and optimized for the same quick workflows people use on mobile.
+
+Acceptance criteria:
+
+- Farm can be used comfortably from a mobile browser.
+- Farm can be installed as a progressive web app on supported phones.
+- Core actions are touch-friendly and do not depend on desktop-only interactions.
+- The desktop experience remains narrow and app-like instead of becoming a broad admin dashboard.
+- The same core journeys work across mobile browser, installed PWA, and desktop web.
+
 ## Key Risks and Open Questions
 
 - X API permissions, rate limits, and pricing may affect what can be automated reliably.
@@ -153,6 +167,10 @@ Farm should feel sleek, lightweight, and app-like. The primary experience should
 - Notifications when a request is created, completed, or needs attention.
 
 ## Amendments
+
+### 2026-05-06: Mobile-First PWA Direction
+
+Added UI and platform direction that Farm should be a touch-friendly progressive web app for phones, while the desktop web experience should remain a narrow, focused app surface.
 
 ### 2026-05-06: Initial High-Level PRD
 
