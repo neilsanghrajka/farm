@@ -2,6 +2,7 @@
 
 - For any frontend change, use `$frontend-skill` and `$vercel-plugin/shadcn`, and only use existing shadcn components.
 - Always use `pnpm` as the package manager.
+- Never edit `CLAUDE.md`; it is intentionally only a pointer to `AGENTS.md`.
 - Production URL: spcfarm.vercel.app
 - App is deployed automatically to production on push to GitHub, no need to manually deploy. Use vercel cli to check deployment status.
 - Cleanup after yourself: remove any open ports, background shells, background agents, temp artifacts, screenshots, logs, and other run-specific leftovers, but do not remove build caches or other artifacts that help future builds run faster.
