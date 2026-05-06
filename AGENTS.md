@@ -1,6 +1,7 @@
 # Agents
 
 - For any frontend change, use `$frontend-skill` and `$vercel-plugin/shadcn`, and only use existing shadcn components.
+- Theme conventions: use Tailwind v4/shadcn tokens from `app/globals.css` for foundational UI (`bg-background`, `text-foreground`, `bg-card`, `border-border`, `ring-ring`, etc.); avoid ad-hoc hex or Tailwind palette colors for core surfaces. Keep font tokens in `@theme inline` as literal Geist font stacks, not `var(--font-*)` self-references.
 - Always use `pnpm` as the package manager.
 - Never edit `CLAUDE.md`; it is intentionally only a pointer to `AGENTS.md`.
 - Production URL: spcfarm.vercel.app

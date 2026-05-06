@@ -28,7 +28,7 @@ As of 2026-05-06, Farm is scoped to:
 
 - Platform: X only.
 - Engagement type: likes only.
-- Authentication: email-based app signup plus official X OAuth account linking.
+- Authentication: password-based app login/signup plus official X OAuth account linking.
 - Communities: user-created Farms that members can join by invite link.
 - Reporting: request-level status and history showing who engaged, who did not, and how many likes came through Farm.
 
@@ -36,7 +36,7 @@ Out of scope for the initial version:
 
 - Comments, reposts, quote posts, bookmarks, follows, or DMs.
 - LinkedIn or other social platforms.
-- Non-official X automation, password-based login, scraping, or browser automation.
+- Non-official X automation, passwordless magic-link or OTP login, scraping, or browser automation.
 - Complex campaign management, scheduling, billing, or public discovery of Farms.
 
 ## Core Concepts
@@ -44,7 +44,8 @@ Out of scope for the initial version:
 - User: A person with a Farm account, identified by email and name.
 - Account: A connected external social account owned by a user. Initially, this is only an X account.
 - Farm: A private group of users who agree to amplify each other's posts.
-- Farm admin: The user who creates a Farm. Admins can delete the Farm and remove members.
+- Farm admin: The user who creates a Farm. Admins can copy the Farm join link
+  and delete the Farm.
 - Post: A public post on an external platform. Initially, this means a valid X post URL.
 - Engagement request: A user's request for members of a selected Farm to engage with a specific post.
 - Engagement: The action Farm performs on behalf of a connected account. Initially, this is an X like.
@@ -60,39 +61,51 @@ Out of scope for the initial version:
 
 ## User Journeys
 
-### 1. Onboarding
+### 1. Login
 
-A new user signs up with their email and name so Farm can identify them and associate them with Farms, connected accounts, and engagement requests.
+A signed-out user continues with one password-based flow that handles both new and returning users. New users provide a name during the same flow so Farm can identify them and associate them with Farms, connected accounts, and engagement requests.
+
+Detailed spec: `docs/features/00_LOGIN.md`
 
 Acceptance criteria:
 
-- A user can create an account with only email and name.
+- A user can sign in or create an account from one combined password flow.
+- A new user can provide a name without choosing a separate signup path.
 - Farm does not require X linking during initial account creation.
-- After onboarding, the user can reach the main app experience.
+- After login, the user can reach the main app experience.
 
-### 2. Link X Account
+### 2. X Account Linking
 
-A user connects their X account from Settings using official X OAuth. Farm asks only for the minimum scopes needed to read the target post and like posts on the user's behalf. The user can later disconnect the X account.
+A user lands on Home after Farm login. If they have not linked X, Home shows a blocking setup prompt and sends them to Settings to connect their X account through official X OAuth. Farm asks only for the minimum scopes needed to read the target post and like posts on the user's behalf. The user can later disconnect the X account.
+
+Detailed spec: `docs/features/01_X_LOGIN.md`
 
 Acceptance criteria:
 
+- Home shows a clear setup prompt when the user has not linked X.
+- Engagement-request actions are disabled until the user has an eligible linked X account.
 - A user can start official X OAuth from Settings.
 - Farm explains that the requested access is limited to reading relevant X post data and liking posts.
-- A linked X account appears in Settings.
+- A linked X account appears in Settings and unblocks Home.
 - A user can disconnect their X account.
 - Farm does not request broad posting, DM, password, or unrelated account access.
 
 ### 3. Create and Manage a Farm
 
-A user creates a Farm, becomes its admin, and receives a unique invite URL. Anyone with the invite URL can join the Farm after signing up or logging in. The admin can remove members or delete the Farm. Non-admin members can leave a Farm.
+A user creates a Farm, becomes its admin, and receives a unique join URL. Anyone
+with the join URL can review the Farm and join after signing up or logging in.
+The admin can copy the join URL or delete the Farm. Non-admin members can leave
+a Farm.
+
+Detailed spec: `docs/features/03_FARM.md`
 
 Acceptance criteria:
 
 - A user can create a Farm.
 - The creator is the Farm admin.
 - Farm creates a unique join URL.
-- A user with the join URL can join the Farm.
-- Admins can remove members.
+- A user with the join URL can confirm and join the Farm.
+- Admins can copy the join URL.
 - Admins can delete the Farm.
 - Members can leave the Farm.
 
@@ -134,13 +147,15 @@ Acceptance criteria:
 
 ## UX Direction
 
-Farm should feel sleek, lightweight, and app-like. The primary experience should be fast and focused: onboard, connect X, join or create a Farm, submit a post, and see request status. The product should avoid heavy marketing surfaces inside the app and should behave as much like a single-page app as the stack allows.
+Farm should feel sleek, lightweight, and app-like. The primary experience should be fast and focused: log in, connect X, join or create a Farm, submit a post, and see request status. The product should avoid heavy marketing surfaces inside the app and should behave as much like a single-page app as the stack allows.
 
 ## UI and Platform Direction
 
 Farm should be designed mobile-first as a touch-friendly progressive web app that users can install on their phones. The core flows should feel natural on a narrow phone viewport, with comfortable tap targets and simple navigation.
 
 The desktop web app should use the same focused product surface rather than expanding into a wide dashboard. On larger screens, Farm should still feel like a narrow app: centered, constrained, and optimized for the same quick workflows people use on mobile.
+
+Farm should use a restrained shadcn/Tailwind v4 visual system: neutral theme tokens, Geist typography, consistent radius, one primary accent, and mobile-first app surfaces. Core UI should rely on shadcn components and global tokens rather than custom one-off styling.
 
 Acceptance criteria:
 
@@ -162,11 +177,31 @@ Acceptance criteria:
 
 - LinkedIn account linking and LinkedIn engagement.
 - Additional engagement types such as reposts, comments, or follows.
+- Admin member removal and multiple-admin role management.
 - More detailed analytics per Farm and per request.
 - Admin-level Farm settings for who can request engagement and whether approvals are required.
 - Notifications when a request is created, completed, or needs attention.
 
 ## Amendments
+
+### 2026-05-06: Farm UI Scope
+
+Added `docs/features/03_FARM.md` as the detailed Farm UI spec. The current Farm
+scope is create, list, join by reusable link, copy link, leave, and admin delete.
+X/Twitter eligibility gates, invite-member flows, member removal, and multiple
+admin controls are deferred.
+
+### 2026-05-06: X Linking Before Onboarding
+
+Moved broader onboarding and invite acceptance out of the next spec. The current sequence is `docs/features/00_LOGIN.md`, then `docs/features/01_X_LOGIN.md`, with `docs/features/07_ONBOARDING.md` deferred for invite and first-run choices.
+
+### 2026-05-06: Combined Login Flow
+
+Split the signed-out entry experience into `docs/features/00_LOGIN.md`. Login and signup share one password-based flow, with name capture handled inside that flow for first-time users.
+
+### 2026-05-06: Password Login Scope
+
+Updated login scope to password-based app login/signup. Passwordless magic-link and OTP flows are out of scope for v1 login.
 
 ### 2026-05-06: Mobile-First PWA Direction
 
