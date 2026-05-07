@@ -230,8 +230,7 @@ function HomeScreen({
       : null
   const hasFarmPrefill = Boolean(initialFarmId)
   const singleFarmId = farms?.length === 1 ? farms[0]?.id : null
-  const selectedFarmId =
-    chosenFarmId ?? initialFarm ?? (!hasFarmPrefill ? singleFarmId : null)
+  const selectedFarmId = chosenFarmId ?? initialFarm ?? singleFarmId
   const selectedFarm = farms?.find((farm) => farm.id === selectedFarmId)
   const linkedXArgs = selectedFarmId ? { farmId: selectedFarmId } : {}
   const linkedXStatus = useQuery(api.requests.getLinkedXStatus, linkedXArgs) as
@@ -245,7 +244,11 @@ function HomeScreen({
   const xEligible = Boolean(linkedXStatus?.eligible)
   const xStatusLoaded = linkedXStatus !== undefined
   const invalidFarmPrefill = Boolean(
-    farmsLoaded && hasFarmPrefill && !initialFarm && !chosenFarmId
+    farmsLoaded &&
+    hasFarmPrefill &&
+    !initialFarm &&
+    !chosenFarmId &&
+    !singleFarmId
   )
   const canCreateRequest = Boolean(
     postUrl.trim() &&
