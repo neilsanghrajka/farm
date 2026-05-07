@@ -21,6 +21,7 @@ import { InstallPrompt } from "@/components/install-prompt"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { api } from "@/convex/_generated/api"
+import { cn } from "@/lib/utils"
 
 type LoginStep = "credentials" | "profile"
 
@@ -265,15 +266,20 @@ export function LoginScreen({ children }: { children?: ReactNode }) {
         </div>
 
         <div className="w-full text-center">
-          <h1 className="text-[2rem] leading-tight font-semibold tracking-normal text-foreground">
-            {isProfileStep ? "Create your profile" : "Sign up or log in"}
-          </h1>
           {!isProfileStep ? (
-            <div className="mt-3 flex flex-col items-center gap-2">
+            <div className="flex flex-col items-center gap-2">
               <FarmExplainerDialog />
               <FarmSafetyDialog />
             </div>
           ) : null}
+          <h1
+            className={cn(
+              "text-[2rem] leading-tight font-semibold tracking-normal text-foreground",
+              !isProfileStep && "mt-5"
+            )}
+          >
+            {isProfileStep ? "Create your profile" : "Sign up or log in"}
+          </h1>
           {isProfileStep ? (
             <p className="mx-auto mt-4 max-w-[18rem] text-lg leading-7 text-muted-foreground">
               We do not recognize this email yet. Add your name to finish.
