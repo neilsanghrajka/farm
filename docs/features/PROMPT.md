@@ -88,12 +88,30 @@ Each spec-writing subagent must inspect a distinct area and return concise findi
 Use the relevant repo skills by reference:
 
 - `$frontend-skill`
-- `$vercel-plugin/shadcn`
+- `$vercel:shadcn` at
+  `/Users/neilsanghrajka/.codex/plugins/cache/openai-curated/vercel/9d07fd08/skills/shadcn/SKILL.md`
 - Convex skills
 - Vercel skills
 - X/Twitter skills when the feature touches X
 - ImageGen when the feature needs visual mocks
 - `$browser-use` / `@Browser` in-app browser skill for visual and flow testing
+
+Shadcn implementation guidance:
+
+- Use `$vercel:shadcn` for all UI implementation guidance.
+- Prefer shadcn components for UI primitives and interaction patterns. Shadcn
+  has components for common product needs: buttons, inputs, labels, forms,
+  cards, badges, alerts, dialogs, dropdowns, sheets, tabs, tables, skeletons,
+  separators, avatars, scroll areas, tooltips, and more.
+- If a needed shadcn component is not already in `components/ui`, the spec
+  should tell implementors to add it with the shadcn CLI using `pnpm`/`pnpm dlx`
+  and the non-interactive flags from the skill, then compose that component.
+- Do not hand-roll custom UI primitives or local one-off replacements when a
+  shadcn component exists. Do not create custom app components just to wrap
+  basic UI primitives; compose the shadcn components directly unless there is a
+  clearly feature-specific, reusable product component.
+- Keep foundational styling on shadcn/Tailwind v4 theme tokens from
+  `app/globals.css`.
 
 Browser surface guidance:
 
@@ -236,7 +254,10 @@ Include:
 - navigation
 - loading/error/success handling
 
-Do not invent new shadcn components if existing repo components can be composed.
+Use shadcn components wherever they fit. If the needed component is not already
+installed locally, specify the shadcn component to add instead of asking
+implementors to hand-roll custom UI. Avoid creating bespoke local UI components
+for primitives that shadcn already provides.
 
 ### Convex / Backend
 
