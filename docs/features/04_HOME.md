@@ -976,7 +976,7 @@ Example:
   "profileId": "profiles:...",
   "accountId": "accounts:...",
   "provider": "x",
-  "providerAccountId": "1021261303",
+  "providerAccountId": "<x-user-id>",
   "providerUsername": "neilsanghrajka",
   "status": "pending",
   "attemptCount": 0,
@@ -1183,11 +1183,11 @@ After implementation, run a dedicated review comparing code to this spec:
 Only when pushed or explicitly requested:
 
 - Trust automatic production deployment after GitHub push.
-- Check `https://spcfarm.vercel.app`.
+- Check `$NEXT_PUBLIC_APP_URL`.
 - Verify production Convex deployment with:
 
 ```bash
-pnpm exec convex run --deployment production-eu health:ping
+pnpm exec convex run --deployment $CONVEX_DEPLOYMENT health:ping
 ```
 
 - Use Vercel CLI to inspect deployment status only if explicitly asked or if

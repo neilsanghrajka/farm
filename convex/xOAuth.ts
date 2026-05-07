@@ -388,19 +388,21 @@ function providerAccountIdFromAccessToken(accessToken: string) {
 }
 
 function appBaseUrl() {
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL?.trim()
+  return getRequiredUrlEnv("NEXT_PUBLIC_APP_URL")
+}
 
-  if (appUrl) {
-    return appUrl
+function getRequiredUrlEnv(name: string) {
+  const value = process.env[name]?.trim()
+
+  if (!value) {
+    throw new ConvexError("App URL is not configured yet.")
   }
 
-  const redirectUri = process.env.X_REDIRECT_URI?.trim()
-
-  if (redirectUri) {
-    return new URL(redirectUri).origin
+  try {
+    return new URL(value).origin
+  } catch {
+    throw new ConvexError("App URL is not configured correctly.")
   }
-
-  return "https://spcfarm.vercel.app"
 }
 
 function redirectToAppSettings(error: string) {

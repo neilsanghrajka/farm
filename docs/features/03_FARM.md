@@ -640,7 +640,7 @@ Backend requirements:
 - Dia/Computer Use is not needed for app verification. Use it only if an
   external admin dashboard action is truly required and cannot be completed with
   the relevant CLI.
-- Production URL for generated links is `https://spcfarm.vercel.app`.
+- Production URL for generated links is `$NEXT_PUBLIC_APP_URL`.
 - Local development links should use the current request origin.
 
 ## Development Plan

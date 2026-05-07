@@ -13,6 +13,7 @@ import {
 } from "react"
 
 import { Button } from "@/components/ui/button"
+import { FarmExplainerDialog } from "@/components/farm-explainer-dialog"
 import { InstallPrompt } from "@/components/install-prompt"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -264,6 +265,11 @@ export function LoginScreen({ children }: { children?: ReactNode }) {
           <h1 className="text-[2rem] leading-tight font-semibold tracking-normal text-foreground">
             {isProfileStep ? "Create your profile" : "Sign up or log in"}
           </h1>
+          {!isProfileStep ? (
+            <div className="mt-3 flex justify-center">
+              <FarmExplainerDialog />
+            </div>
+          ) : null}
           {isProfileStep ? (
             <p className="mx-auto mt-4 max-w-[18rem] text-lg leading-7 text-muted-foreground">
               We do not recognize this email yet. Add your name to finish.

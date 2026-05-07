@@ -14,13 +14,13 @@ Provisioning status: these rows track AgentMail inboxes and Farm users only. Do 
 
 | Slot | AgentMail email | Farm email | Farm role/status | Linked-X status | Created date |
 | --- | --- | --- | --- | --- | --- |
-| 1 | `farm-auto-qa-01@agentmail.to` | `farm-auto-qa-01@agentmail.to` | Farm user created; admin in `Farm Auto QA` | Not linked; fresh X signup path blocked by X and should not be retried | 2026-05-07 (AgentMail + Farm) |
-| 2 | `farm-auto-qa-02@agentmail.to` | `farm-auto-qa-02@agentmail.to` | Farm user created; member in `Farm Auto QA` | Not linked; use a manually maintained aged X test account if needed | 2026-05-07 (AgentMail + Farm) |
-| 3 | `farm-auto-qa-03@agentmail.to` | `farm-auto-qa-03@agentmail.to` | Farm user created; member in `Farm Auto QA` | Not linked; use a manually maintained aged X test account if needed | 2026-05-07 (AgentMail + Farm) |
+| 1 | stored in `.env.local` | stored in `.env.local` | stored in private QA notes | stored in private QA notes | stored in private QA notes |
+| 2 | stored in `.env.local` | stored in `.env.local` | stored in private QA notes | stored in private QA notes | stored in private QA notes |
+| 3 | stored in `.env.local` | stored in `.env.local` | stored in private QA notes | stored in private QA notes | stored in private QA notes |
 
 QA Farm:
 
-- Name: `Farm Auto QA`
+- Name: stored locally as `QA_FARM_NAME` in `.env.local`
 - Production Farm id: stored locally as `QA_FARM_ID` in `.env.local`
 - Production join URL: stored locally as `QA_FARM_JOIN_URL` in `.env.local`
 
@@ -33,13 +33,13 @@ Recommended keys:
 ```bash
 AGENTMAIL_API_KEY=
 
-TEST_USER_1_EMAIL=farm-auto-qa-01@agentmail.to
+TEST_USER_1_EMAIL=
 TEST_USER_1_FARM_PASSWORD=
 
-TEST_USER_2_EMAIL=farm-auto-qa-02@agentmail.to
+TEST_USER_2_EMAIL=
 TEST_USER_2_FARM_PASSWORD=
 
-TEST_USER_3_EMAIL=farm-auto-qa-03@agentmail.to
+TEST_USER_3_EMAIL=
 TEST_USER_3_FARM_PASSWORD=
 ```
 
@@ -51,13 +51,13 @@ Use the repo-local `$agentmail` skill before creating or inspecting test inboxes
 
 - Initialize with `new AgentMailClient({ apiKey })`.
 - Create inboxes with `client.inboxes.create({ username, domain: "agentmail.to", clientId })`.
-- Reuse stable `clientId` values such as `farm-auto-qa-01` so a retry returns the original inbox instead of creating duplicates.
+- Reuse stable local `clientId` values from `.env.local` so a retry returns the original inbox instead of creating duplicates.
 - Poll inbound messages with `client.inboxes.messages.list(inboxId)` and read individual messages with `client.inboxes.messages.get(inboxId, messageId)`.
 
 Suggested setup flow:
 
 1. Confirm `AGENTMAIL_API_KEY` exists in `.env.local`.
-2. Create or fetch the three inboxes with usernames `farm-auto-qa-01`, `farm-auto-qa-02`, and `farm-auto-qa-03`.
+2. Create or fetch the three inboxes with usernames stored in `.env.local`.
 3. Send a harmless test email to each inbox if needed and confirm it appears via AgentMail messages.
 4. Leave the inboxes active for future Farm verification emails.
 
@@ -65,7 +65,7 @@ If AgentMail API access is missing or an inbox cannot receive mail, stop and fix
 
 ## Farm User Creation
 
-Use `https://spcfarm.vercel.app` for production QA.
+Use the URL stored in `NEXT_PUBLIC_APP_URL` for production QA.
 
 1. Sign out of any existing Farm session.
 2. Create the Farm user with the matching AgentMail email.
@@ -90,7 +90,7 @@ Do not automate new X account creation for Farm QA. The AgentMail-based X signup
 
 Current X blocker:
 
-- On 2026-05-07, slot 1 completed AgentMail email verification in the in-app Browser and accepted a generated password. A follow-up login test recognized `farm-auto-qa-01@agentmail.to`, but the account was then blocked by X after login.
+- On 2026-05-07, one fresh X signup attempt was blocked by X after email verification and login. Keep concrete account identifiers in private QA notes only.
 - Do not create slots 2 and 3 on X. More rapid fresh-account creation is likely to increase blocks.
 - Prefer one of these next strategies:
   - Have the user manually appeal/unblock slot 1 and complete any required X trust steps.
@@ -124,9 +124,9 @@ Use the three Farm QA users plus separately supplied, aged X test accounts for p
 Useful Convex checks:
 
 ```bash
-pnpm exec convex run --deployment production-eu health:ping
-pnpm exec convex data --deployment production-eu engagementRequests
-pnpm exec convex data --deployment production-eu engagementAttempts
+pnpm exec convex run --deployment "$CONVEX_DEPLOYMENT" health:ping
+pnpm exec convex data --deployment "$CONVEX_DEPLOYMENT" engagementRequests
+pnpm exec convex data --deployment "$CONVEX_DEPLOYMENT" engagementAttempts
 ```
 
 Do not dump the production `accounts` table in a shared terminal or chat. Use a targeted status-only Convex function or carefully scoped CLI query that returns only linked status, scopes, and expiration metadata without encrypted token fields.

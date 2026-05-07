@@ -140,11 +140,11 @@ Dia was not used. Dia should remain reserved for external admin dashboards only.
 
 Test users:
 
-- Admin: `farm-admin-75527406@example.com`
-- Member: `farm-member-75527406@example.com`
+- Admin: stored in private QA notes
+- Member: stored in private QA notes
 - Farm: `QA Farm 75527406`
-- Farm id: `kd76r0fp2gcm8p2e76rw06vpxh866ff6`
-- Invite code: `WoTBLXrL`
+- Farm id: stored in private QA notes
+- Invite code: stored in private QA notes
 
 Passed:
 

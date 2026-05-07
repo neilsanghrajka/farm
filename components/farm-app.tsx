@@ -26,6 +26,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Alert, AlertDescription } from "@/components/ui/alert"
+import { FarmExplainerDialog } from "@/components/farm-explainer-dialog"
 import { InstallPrompt } from "@/components/install-prompt"
 import {
   Card,
@@ -901,14 +902,17 @@ function SettingsScreen() {
 
       <section className="space-y-3">
         <SectionLabel>Farms</SectionLabel>
-        <Card className="py-0">
-          <LinkRow
-            href="/farms"
-            icon={<FarmGlyph className="size-11" />}
-            title="My Farms"
-            subtitle="View and manage your Farms"
-          />
-        </Card>
+        <div className="space-y-3">
+          <Card className="py-0">
+            <LinkRow
+              href="/farms"
+              icon={<FarmGlyph className="size-11" />}
+              title="My Farms"
+              subtitle="View and manage your Farms"
+            />
+          </Card>
+          <FarmExplainerDialog variant="outline" />
+        </div>
       </section>
 
       <Button
@@ -1045,7 +1049,7 @@ function CreateFarmScreen() {
               setName(event.target.value)
               setError(null)
             }}
-            placeholder="SPC Founders"
+            placeholder="Example Farm"
             value={name}
           />
           <p className="text-sm leading-6 text-muted-foreground">
@@ -1086,7 +1090,7 @@ function FarmDetailScreen({ farmId }: { farmId: Id<"farms"> }) {
     window.setTimeout(() => setCopyStatus("idle"), 1500)
   }
 
-  if (detail === undefined) return <LoadingScreen title="SPC Founders" />
+  if (detail === undefined) return <LoadingScreen title="Example Farm" />
   if (detail.status === "unavailable") return <UnavailableFarmScreen />
 
   return (

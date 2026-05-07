@@ -20,7 +20,7 @@ Current feature order:
 Do not treat X account linking as the broader onboarding spec unless the user explicitly asks to merge those scopes.
 
 ```md
-You are working in `/Users/neilsanghrajka/Code/farm`.
+You are working in `$REPO_ROOT`.
 
 I am describing a feature. Your job is to create a detailed feature spec that can later be handed to implementation agents to prototype, get design approval, build, self-verify, and push.
 
@@ -98,7 +98,7 @@ Use the relevant repo skills by reference:
 
 - `$frontend-skill`
 - `$vercel:shadcn` at
-  `/Users/neilsanghrajka/.codex/plugins/cache/openai-curated/vercel/9d07fd08/skills/shadcn/SKILL.md`
+  `$vercel:shadcn`
 - Convex skills
 - Vercel skills
 - X/Twitter skills when the feature touches X
@@ -472,7 +472,7 @@ Include only when the implementation is pushed or production behavior is explici
 
 Check:
 
-- `https://spcfarm.vercel.app`
+- `$NEXT_PUBLIC_APP_URL`
 - production Convex deployment
 - production auth/integration env vars
 - user-visible flow in production

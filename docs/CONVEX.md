@@ -1,25 +1,19 @@
 # Convex Workflow
 
-This project uses Convex as the backend for the Next.js app deployed at
-`spcfarm.vercel.app`.
+This project uses Convex as the backend for the Next.js app.
 
 ## Project Facts
 
-- Convex team: `neil-sanghrajka`
-- Convex project: `farm`
-- Dev deployment: `superb-oyster-941`
-- Region: EU West / Ireland
-- Dev URL: `https://superb-oyster-941.eu-west-1.convex.cloud`
-- Vercel production Convex deployment: `production-eu`
-- Vercel production Convex URL:
-  `https://merry-walrus-605.eu-west-1.convex.cloud`
-- Vercel project: `farm`
-- Production URL: `https://spcfarm.vercel.app`
+Keep live deployment identifiers, team names, project IDs, production URLs, and
+Convex cloud URLs in private environment configuration or an untracked operator
+runbook. Do not commit those account-specific values.
 
-Note: the project also has the initial default Convex production deployment
-`dusty-dodo-296`. Vercel production is intentionally wired to the EU deployment
-through `CONVEX_DEPLOY_KEY`, so prefer `--deployment production-eu` for
-production checks unless the dashboard default is changed later.
+Expected private values:
+
+- Convex team/project/deployment names
+- Convex dev and production URLs
+- Vercel project and production URL
+- Production deployment selector used with `--deployment`
 
 ## Local Development
 
@@ -46,7 +40,15 @@ Expected env names:
 CONVEX_DEPLOYMENT=
 NEXT_PUBLIC_CONVEX_URL=
 NEXT_PUBLIC_CONVEX_SITE_URL=
+CONVEX_SITE_URL= # local only; hosted Convex provides this as a built-in
 CONVEX_DEPLOY_KEY=
+NEXT_PUBLIC_APP_URL=
+X_CLIENT_ID=
+X_REDIRECT_URI=
+X_OAUTH_SCOPES=
+X_APP_ID=
+X_ENROLLED_ACCOUNT_ID=
+X_TOKEN_ENCRYPTION_KEY=
 ```
 
 ## Production Deploys
@@ -60,14 +62,13 @@ pnpm exec convex deploy --cmd 'pnpm run build' --cmd-url-env-var-name NEXT_PUBLI
 
 This command deploys Convex functions and sets `NEXT_PUBLIC_CONVEX_URL` for the
 Next.js build command it wraps. Vercel needs `CONVEX_DEPLOY_KEY` configured in
-the Production environment. It is currently set as a sensitive Vercel
-Production env var and targets `production-eu`.
+the Production environment as a sensitive value.
 
 Useful Vercel checks:
 
 ```bash
-vercel inspect spcfarm.vercel.app --wait
-vercel logs spcfarm.vercel.app --no-follow
+vercel inspect "$NEXT_PUBLIC_APP_URL" --wait
+vercel logs "$NEXT_PUBLIC_APP_URL" --no-follow
 ```
 
 ## Convex CLI
@@ -76,7 +77,7 @@ Use the Convex CLI first for setup, deploys, and verification:
 
 ```bash
 pnpm exec convex run health:ping
-pnpm exec convex run --deployment production-eu health:ping
+pnpm exec convex run --deployment "$CONVEX_DEPLOYMENT" health:ping
 pnpm exec convex data <table>
 pnpm exec convex run --inline-query 'await ctx.db.query("table").take(5)'
 ```

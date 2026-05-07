@@ -826,7 +826,7 @@ Backend requirements:
   "profileId": "profiles:...",
   "accountId": "accounts:...",
   "provider": "x",
-  "providerAccountId": "1021261303",
+  "providerAccountId": "<x-user-id>",
   "providerUsername": "neilsanghrajka",
   "status": "liked",
   "attemptCount": 1,
@@ -1060,11 +1060,11 @@ explicitly in scope.
 
 Check:
 
-- `https://spcfarm.vercel.app`
+- `$NEXT_PUBLIC_APP_URL`
 - Production Convex deployment:
 
 ```bash
-pnpm exec convex run --deployment production-eu health:ping
+pnpm exec convex run --deployment $CONVEX_DEPLOYMENT health:ping
 ```
 
 - A production request detail route, if suitable production test data exists.

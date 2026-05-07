@@ -242,10 +242,10 @@ Home recognizable as the app's main working surface.
 Implementation agents must use these repo skills/plugins before writing or
 changing code for this feature:
 
-- `$X` at `/Users/neilsanghrajka/Code/farm/.agents/skills/x/SKILL.md` for X
+- `$X` at `.agents/skills/x/SKILL.md` for X
   OAuth, user-context authentication, scopes, rate limits, endpoint behavior,
   and official API verification.
-- `$convex` at `/Users/neilsanghrajka/Code/farm/.agents/skills/convex/SKILL.md`
+- `$convex` at `.agents/skills/convex/SKILL.md`
   for routing to the right Convex workflow. For this feature, expect to use the
   more specific auth/schema guidance when adding account tables, auth-owned
   queries, mutations, actions, or HTTP callbacks.
@@ -386,28 +386,16 @@ Backend requirements:
 
 Use the X skill and current official X docs before implementation.
 
-Known working developer setup from prior local verification:
+Developer setup:
 
-- X account used for testing: `@NeilSanghrajka`.
-- Authenticated X user ID returned by API: `1021261303`.
-- X Developer Console account URL:
-  `https://console.x.com/accounts/2051926369484025856`.
-- Developer account/enrolled account ID: `2051926369484025856`.
-- App ID: `32883674`.
-- App name shown in console: `2051926369484025856NeilSanghra`.
-- App status: `ACTIVE`.
-- Billing model shown: Pay Per Use.
-- App permissions: `Read and write`.
-- Type of App: `Native App`.
-- Local callback / redirect URLs used in testing:
-  - `http://127.0.0.1:3000/callback`
-  - `http://127.0.0.1:3001/callback` when port 3000 is already occupied
-- Local website URL used in testing: `http://localhost:3000` or
-  `http://localhost:3001`.
-- Keep the X callback on `127.0.0.1` if that is what is configured in the X
-  Developer Console, but set Convex `NEXT_PUBLIC_APP_URL` to the matching
-  `localhost` app origin so the final redirect preserves the Convex Auth
-  browser session cookie.
+- Keep live X account handles, authenticated X user IDs, developer account IDs,
+  app IDs, app names, billing details, and dashboard URLs in private env or an
+  untracked operator runbook.
+- Store the app ID in `X_APP_ID` and enrolled/developer account ID in
+  `X_ENROLLED_ACCOUNT_ID`; do not hardcode those values in docs or code.
+- Configure callback URLs in the X Developer Console from `X_REDIRECT_URI`.
+- Set `NEXT_PUBLIC_APP_URL` to the app origin that should receive users after
+  the Convex OAuth callback completes.
 - Scopes requested for the minimum official X like flow:
   `tweet.read users.read like.write offline.access`.
 
@@ -418,8 +406,8 @@ Sensitive credential handling:
 - The current `Native App` setup is a public PKCE client, so token exchange can
   use `client_id` in the request body without a client secret.
 - If the app is later changed to a confidential client type, retrieve or
-  regenerate the OAuth 2.0 Client Secret from:
-  `Developer Console -> Apps -> app 32883674 -> Keys & Tokens`.
+  regenerate the OAuth 2.0 Client Secret from the X Developer Console and store
+  it only in server-side env.
 - Use these environment variables for X credentials and production callback
   configuration:
   - `X_CLIENT_ID`
@@ -431,7 +419,7 @@ Sensitive credential handling:
 - Store server-only X values on Convex because Convex handles token exchange.
   Vercel only needs public app/Convex URLs for the `/callback` redirect shim.
 
-Current production env status as of 2026-05-07:
+Required production env status:
 
 - Vercel Production has:
   - `CONVEX_DEPLOY_KEY`
@@ -441,7 +429,7 @@ Current production env status as of 2026-05-07:
   - `X_OAUTH_SCOPES`
   - `X_APP_ID`
   - `X_ENROLLED_ACCOUNT_ID`
-- Convex `production-eu` has:
+- Convex production has:
   - `NEXT_PUBLIC_APP_URL`
   - `NEXT_PUBLIC_CONVEX_SITE_URL`
   - `X_CLIENT_ID`
@@ -450,30 +438,24 @@ Current production env status as of 2026-05-07:
   - `X_APP_ID`
   - `X_ENROLLED_ACCOUNT_ID`
   - `X_TOKEN_ENCRYPTION_KEY`
-- Convex dev deployment `superb-oyster-941` has local OAuth values for
-  localhost testing.
+- Convex dev deployment has local OAuth values for localhost testing.
 - `X_CLIENT_SECRET` is not required for the current public PKCE app type.
-- X Developer Console callback URLs now include:
-  - `http://127.0.0.1:3000/callback`
-  - `http://127.0.0.1:3001/callback`
-  - `https://spcfarm.vercel.app/callback`
+- X Developer Console callback URLs should match `X_REDIRECT_URI` for each
+  environment.
 
 Required dashboard / env setup before build:
 
-1. Use Computer Use to control Dia, where X Developer Console is already logged
-   in.
-2. Open:
-   `https://console.x.com/accounts/2051926369484025856/apps/settings?appId=32883674`.
-3. Confirm the production callback URL exists:
-   `https://spcfarm.vercel.app/callback`.
-4. Open app `32883674` -> `Keys & Tokens`.
-5. Confirm OAuth 2.0 `X_CLIENT_ID` is set on Convex.
-6. Confirm `X_TOKEN_ENCRYPTION_KEY` is set on Convex.
-7. Set `X_CLIENT_SECRET` on Convex only if the X app is changed from Native App
+1. Use the X Developer Console only when CLI/local automation cannot complete
+   the action.
+2. Confirm the callback URL in `X_REDIRECT_URI` is registered for the X app.
+3. Open the configured app's `Keys & Tokens` view only to verify or rotate
+   credentials.
+4. Confirm OAuth 2.0 `X_CLIENT_ID` is set on Convex.
+5. Confirm `X_TOKEN_ENCRYPTION_KEY` is set on Convex.
+6. Set `X_CLIENT_SECRET` on Convex only if the X app is changed from Native App
    to a confidential client type.
-8. Use Vercel CLI and Convex CLI for env updates whenever possible. Use Dia only
-   for X dashboard actions that do not have a CLI.
-9. Do not commit, print, or paste the client secret or token encryption key into
+7. Use Vercel CLI and Convex CLI for env updates whenever possible.
+8. Do not commit, print, or paste the client secret or token encryption key into
    docs, code, logs, or chat.
 
 Known working OAuth flow:
@@ -482,7 +464,7 @@ Known working OAuth flow:
 2. Start a callback endpoint at `http://127.0.0.1:3000/callback` for local
    testing.
 3. Send the user to `https://x.com/i/oauth2/authorize`.
-4. User authorizes the app as `@NeilSanghrajka`.
+4. User authorizes the configured X app.
 5. X redirects to the callback with `code`.
 6. Exchange the code at `POST https://api.x.com/2/oauth2/token`.
 7. Resolve the authenticated X user id with `/2/users/me`; X requires
@@ -495,20 +477,12 @@ Known working API calls:
 - Authenticated user lookup uses `GET /2/users/me`; Farm uses it only to
   resolve the linked account id required by X's like endpoint.
 - Like post:
-  `POST https://api.x.com/2/users/1021261303/likes`.
+  `POST https://api.x.com/2/users/<x-user-id>/likes`.
 - Like body:
 
 ```json
 { "tweet_id": "<post_id>" }
 ```
-
-Known verified results:
-
-- `POST /2/users/1021261303/likes` returned
-  `{"data":{"liked":true}}` for post ID `1956354563738566775` after credits
-  were purchased.
-- `POST /2/users/1021261303/likes` returned
-  `{"data":{"liked":true}}` for post ID `2051754112010666449`.
 
 Operational guardrails:
 
@@ -520,8 +494,7 @@ Operational guardrails:
 - If the like call fails with `403`, check scopes, app permissions, user auth
   settings, and current X write-access rules.
 - Use the X Developer Console only when CLIs or local scripts cannot complete
-  the needed action. Dia is logged into X and the Developer Console for manual
-  dashboard work.
+  the needed action.
 
 Implementation agents should verify:
 
@@ -574,7 +547,7 @@ Implementation agents should verify:
 - Production deploys happen automatically on GitHub push. Do not manually deploy
   unless explicitly asked.
 - Production verification after push:
-  - Open `https://spcfarm.vercel.app`.
+  - Open `$NEXT_PUBLIC_APP_URL`.
   - Sign in.
   - Confirm missing-X Home shows `Link X account`.
   - Start X OAuth from Settings.

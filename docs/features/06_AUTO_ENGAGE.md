@@ -667,14 +667,14 @@ explicitly asked.
 
 - Trust the GitHub-to-Vercel production deployment.
 - Use Vercel CLI only for status/log checks when needed:
-  - `vercel inspect spcfarm.vercel.app --wait`
-  - `vercel logs spcfarm.vercel.app --no-follow`
-- Use Convex production deployment `production-eu` from `docs/CONVEX.md`:
-  - `pnpm exec convex run --deployment production-eu health:ping`
+  - `vercel inspect $NEXT_PUBLIC_APP_URL --wait`
+  - `vercel logs $NEXT_PUBLIC_APP_URL --no-follow`
+- Use Convex production deployment `$CONVEX_DEPLOYMENT` from `docs/CONVEX.md`:
+  - `pnpm exec convex run --deployment $CONVEX_DEPLOYMENT health:ping`
 
 ### Production Smoke Setup
 
-- Use the in-app Browser against `https://spcfarm.vercel.app`.
+- Use the in-app Browser against `$NEXT_PUBLIC_APP_URL`.
 - Use `docs/TEST_USERS.md` as the canonical inventory for reusable AgentMail
   inboxes and Farm QA users. Live X smoke tests must use separately supplied,
   manually maintained, aged X test accounts.
@@ -684,11 +684,10 @@ explicitly asked.
 - AgentMail provisioning order:
   1. Onboard AgentMail with the human email used by the repo operator.
   2. Save the AgentMail API key only in ignored `.env.local`.
-  3. Create or fetch the reserved `farm-auto-qa-01`, `farm-auto-qa-02`, and
-     `farm-auto-qa-03` inboxes.
+  3. Create or fetch the reserved QA inboxes named in ignored local env.
   4. Use AgentMail message reads to retrieve Farm verification emails.
 - Production account provisioning order:
-  1. Create each Farm account on `https://spcfarm.vercel.app` with its matching
+  1. Create each Farm account on `$NEXT_PUBLIC_APP_URL` with its matching
      AgentMail email.
   2. Do not automate new X account creation. The AgentMail-based X signup
      strategy failed because X blocked the fresh account and should not be
@@ -729,9 +728,9 @@ explicitly asked.
   schedule, jitter, rate-limit details, or raw X errors.
 - Production Convex rows reflect the created request and attempts through
   targeted CLI queries, for example:
-  - `pnpm exec convex run --deployment production-eu health:ping`
-  - `pnpm exec convex data --deployment production-eu engagementRequests`
-  - `pnpm exec convex data --deployment production-eu engagementAttempts`
+  - `pnpm exec convex run --deployment $CONVEX_DEPLOYMENT health:ping`
+  - `pnpm exec convex data --deployment $CONVEX_DEPLOYMENT engagementRequests`
+  - `pnpm exec convex data --deployment $CONVEX_DEPLOYMENT engagementAttempts`
 - Clean up QA Farm/test artifacts where supported by product flows.
 
 ### Production Blockers To Record
@@ -740,7 +739,7 @@ explicitly asked.
 - QA users do not have linked eligible X accounts.
 - OAuth token has expired or needs reconnect.
 - Vercel deployment did not finish.
-- Convex production deployment is not `production-eu`.
+- Convex production deployment is not `$CONVEX_DEPLOYMENT`.
 - Browser verification cannot authenticate the QA user.
 - Reusable Farm QA users in `docs/TEST_USERS.md` are not fully provisioned or
   able to receive AgentMail verification emails.

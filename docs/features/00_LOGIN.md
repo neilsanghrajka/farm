@@ -568,9 +568,9 @@ explicitly in scope.
 
 Check:
 
-- Open `https://spcfarm.vercel.app`.
-- Confirm production Convex deployment `production-eu` is healthy with
-  `pnpm exec convex run --deployment production-eu health:ping`.
+- Open `$NEXT_PUBLIC_APP_URL`.
+- Confirm production Convex deployment `$CONVEX_DEPLOYMENT` is healthy with
+  `pnpm exec convex run --deployment $CONVEX_DEPLOYMENT health:ping`.
 - Confirm production password-auth env vars are present when required.
 - Complete the visible user flow in production with a production-safe test
   email.
@@ -640,4 +640,4 @@ scope.
 Implemented the combined password login/signup screen, Convex Auth wiring,
 `profiles` table, profile sync functions, shadcn theme tokens, local/dev auth
 env setup, and production Convex Auth env setup for deployment
-`merry-walrus-605`.
+`<convex-production-deployment>`.
