@@ -12,6 +12,7 @@ import type * as auth from "../auth.js";
 import type * as farms from "../farms.js";
 import type * as health from "../health.js";
 import type * as http from "../http.js";
+import type * as requests from "../requests.js";
 import type * as users from "../users.js";
 
 import type {
@@ -25,6 +26,7 @@ declare const fullApi: ApiFromModules<{
   farms: typeof farms;
   health: typeof health;
   http: typeof http;
+  requests: typeof requests;
   users: typeof users;
 }>;
 

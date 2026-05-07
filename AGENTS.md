@@ -3,6 +3,8 @@
 - For any frontend change, use `$frontend-skill` and `$vercel-plugin/shadcn`, and only use existing shadcn components.
 - Theme conventions: use Tailwind v4/shadcn tokens from `app/globals.css` for foundational UI (`bg-background`, `text-foreground`, `bg-card`, `border-border`, `ring-ring`, etc.); avoid ad-hoc hex or Tailwind palette colors for core surfaces. Keep font tokens in `@theme inline` as literal Geist font stacks, not `var(--font-*)` self-references.
 - Always use `pnpm` as the package manager.
+- Use subagents aggressively to parallelize work for planning, testing, and building.
+- For local app verification, do not use `pnpm dev` by default. This repo can hit `EMFILE: too many open files, watch` when many agents run in parallel because dev hot reload opens lots of file watchers. Use `pnpm build && pnpm start` instead unless hot reload is explicitly needed.
 - Never edit `CLAUDE.md`; it is intentionally only a pointer to `AGENTS.md`.
 - Production URL: spcfarm.vercel.app
 - App is deployed automatically to production on push to GitHub, no need to manually deploy. Trust the automatic production deployment after pushing; only use the Vercel CLI to check deployment status when explicitly asked.
@@ -11,7 +13,11 @@
 - For Convex workflows, read `docs/CONVEX.md` before changing backend functions, deployments, or Convex env vars.
 - You have Vercel, Convex, shadcn, GitHub, and X (Twitter) skills available. Before making any changes involving these, look up the relevant skill instead of relying on memory.
 - When dealing with admin dashboards, prefer the Convex, Vercel, and GitHub CLIs instead of opening dashboards. Run them with `--help` when stuck instead of relying on memory. If a required admin-dashboard action cannot be done with a CLI, use the Computer Use skill to control Dia, where these dashboards are logged in.
-- You also have access to control and view browsers. Use either the in-app browser (`@browser` skill) or the Computer Use skill to control Dia. To verify work, prefer the in-app browser for opening localhost or production URLs. Use Computer Use to control Dia only for other use cases, such as controlling admin dashboards.
+- Browser/tooling choice:
+  - Use the in-app browser (`@browser` skill) for single-session testing while developing. This is the default for localhost, production smoke checks, screenshots, and verifying your own UI changes.
+  - Use Dia only when the task needs accounts already logged in there, such as Convex, Vercel, GitHub, X developer/admin surfaces, or other dashboards where CLI access is not enough. Dia is a real user browser with existing tabs, cookies, extensions, and localhost history, so do not use it as the default app verifier.
+  - Use Safari or Chrome for multi-user testing, separate auth/session checks, or when you need a cleaner browser profile than Dia without disturbing logged-in admin tabs.
+  - Use Computer Use to control desktop apps or browser windows when a browser/plugin API is not enough, such as dashboard actions, OS dialogs, permission prompts, or other non-web-app interactions.
 
 <!-- convex-ai-start -->
 

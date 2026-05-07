@@ -10,7 +10,12 @@ Current feature order:
 
 1. `docs/features/00_LOGIN.md` - password-based Farm login/signup.
 2. `docs/features/01_X_LOGIN.md` - first authenticated Home experience and X account linking.
-3. `docs/features/07_ONBOARDING.md` - deferred broader onboarding and invite acceptance.
+3. `docs/features/02_SETTINGS.md` - settings surface placeholder for account, X, and Farm navigation.
+4. `docs/features/03_FARM.md` - Farm creation, join links, membership, leave, and delete.
+5. `docs/features/04_HOME.md` - authenticated Home and URL-paste request creation.
+6. `docs/features/05_POST.md` - request status/detail and request history read model.
+7. `docs/features/06_AUTO_ENGAGE.md` - automatic like processing worker.
+8. `docs/features/07_ONBOARDING.md` - deferred broader onboarding and invite acceptance.
 
 Do not treat X account linking as the broader onboarding spec unless the user explicitly asks to merge those scopes.
 
@@ -53,7 +58,11 @@ If the notes mix onboarding, invite acceptance, Home, Settings, and X OAuth, sep
 
 - Farm login belongs in `00_LOGIN`.
 - X account linking and the missing-X Home block belong in `01_X_LOGIN`.
-- Invite acceptance, Farm joining, Farm leaving, and broader first-run choices belong in the deferred onboarding/Farm specs unless the user explicitly moves them into current scope.
+- Farm creation, join links, Farm joining, Farm leaving, and Farm deletion belong in `03_FARM`.
+- URL-paste request creation from Home belongs in `04_HOME`.
+- Request status/detail belongs in `05_POST`.
+- Automatic like processing belongs in `06_AUTO_ENGAGE`.
+- Broader first-run choices belong in deferred onboarding unless the user explicitly moves them into current scope.
 
 ### 2. Run Parallel Spec-Writing
 

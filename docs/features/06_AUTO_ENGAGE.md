@@ -12,6 +12,9 @@ Define the backend system that processes engagement requests and automatically l
 - Determine eligible Farm members and linked X accounts.
 - Use official X APIs to like posts.
 - Record per-account status.
+- Own the shared internal request lifecycle contract from request processing:
+  update one attempt outcome, recalculate aggregate request counts, and mark
+  requests completed, partial, failed, or canceled.
 - Handle retries, failures, revocations, and skipped accounts.
 - Provide status data to the app.
 
@@ -21,6 +24,8 @@ Define the backend system that processes engagement requests and automatically l
 - Backend finds eligible accounts in the selected Farm.
 - Backend attempts the configured engagement action.
 - Backend records success, failure, skipped, or pending status.
+- Backend updates request aggregate counts and terminal request status when
+  attempts settle.
 - UI reads updated request status.
 
 ## Open Questions
@@ -37,4 +42,6 @@ Define the backend system that processes engagement requests and automatically l
 - Engagement attempts only use linked X accounts with valid authorization.
 - The system uses official X APIs only.
 - Each eligible account receives a durable status.
+- Attempt updates flow through shared helpers/mutations that keep request
+  counts and terminal status consistent.
 - Failed and skipped attempts are visible to the app.
