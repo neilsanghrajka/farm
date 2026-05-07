@@ -141,10 +141,11 @@ Acceptance criteria:
 
 ### 5. Automatic Likes
 
-After an engagement request is created, Farm attempts to like the post from each
-eligible connected X account in the selected Farm using official X APIs. The
-request creator's own account is included when the creator is an active member
-of the selected Farm and has an eligible linked X account.
+After an engagement request is created, Farm attempts to like the post from a
+bounded cohort of eligible connected X accounts in the selected private Farm
+using official X APIs. The request creator's own account is part of the same
+eligible candidate pool when the creator is an active member of the selected
+Farm and has an eligible linked X account.
 
 Acceptance criteria:
 
@@ -153,6 +154,15 @@ Acceptance criteria:
 - Farm records success, failure, skipped, or pending status per eligible member/account.
 - Farm does not attempt engagement for users who have not linked X.
 - Farm does not use non-official automation methods.
+- Farm selects a variable seeded subset near 90% of eligible linked accounts,
+  with a hard maximum of 50 selected like attempts per request. The 50-attempt
+  maximum is a ceiling, not the target.
+- Large eligible Farms should not produce the same selected-like count for
+  every request solely because they exceed the 50-attempt ceiling.
+- Farm settles selected attempts within six hours and does not retry
+  indefinitely.
+- Farm remains private and invite-only, with no public marketplace,
+  leaderboards, rewards, reciprocity scores, or other incentive mechanics.
 
 ### 6. View Requests and Stats
 
@@ -206,6 +216,15 @@ Acceptance criteria:
 
 ## Amendments
 
+### 2026-05-07: Staggered Auto Engage Guardrails
+
+Expanded `docs/features/06_AUTO_ENGAGE.md` into the detailed Auto Engage worker
+spec. The product direction is Convex-native scheduled processing, live Convex
+status updates, private Farms only, no incentive mechanics, seeded variable
+eligible-account selection near 90%, a hard maximum of 50 selected like attempts
+per request, randomization protection so large requests do not all land at
+exactly 50 likes, and a six-hour processing window with no indefinite retries.
+
 ### 2026-05-07: Embedded X Post Previews
 
 Home previews a pasted public X post URL with the standard X HTML embed before
@@ -235,13 +254,15 @@ Removed the separate missing-X setup card from Home. When X is missing,
 expired, revoked, or otherwise not eligible, the main request CTA becomes
 `Link X account` with a warning icon and routes to Settings.
 
-### 2026-05-07: Strict X Like-Only Linking
+### 2026-05-07: Minimal X Like Linking Scopes
 
-Changed X linking to request only `like.write offline.access`. Farm no longer
-requests user-context X read scopes for account linking; app-only post
-validation remains separate from user authorization. If X rejects liking under
-the stricter scope set, Farm should fail closed and report the permission
-blocker rather than silently broadening scopes.
+Changed X linking to request `tweet.read users.read like.write offline.access`.
+Live testing showed strict `like.write offline.access` does not provide a usable
+X account id, and X's own v2 authentication mapping requires `tweet.read` and
+`users.read` for `GET /2/users/me` plus `tweet.read users.read like.write` for
+`POST /2/users/:id/likes`. Farm uses those read scopes only to identify the
+linked account and like or unlike submitted post URLs; it does not request DM,
+follow, bookmark, email, or password access.
 
 ### 2026-05-07: Minimal Official X Like Processing
 

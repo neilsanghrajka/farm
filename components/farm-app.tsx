@@ -209,7 +209,7 @@ function HomeScreen({
   initialFarmId?: string
   initialPostUrl?: string
 }) {
-  const farms = useQuery(api.farms.listMine)
+  const farms = useQuery(api.farms.listMine) as FarmSummary[] | undefined
   const recentRequests = useQuery(api.requests.listMine)
   const postUrlId = useId()
   const farmId = useId()
@@ -370,7 +370,7 @@ function HomeScreen({
                 <span className="block truncate text-lg font-semibold text-foreground">
                   {farmSelectorLabel}
                 </span>
-                <span className="mt-0.5 block truncate text-sm text-muted-foreground">
+                <span className="mt-0.5 block truncate text-sm">
                   {farmSelectorSubtext}
                 </span>
               </span>
@@ -804,14 +804,15 @@ function SettingsScreen() {
                 </DialogHeader>
                 <div className="space-y-3 text-sm leading-6 text-muted-foreground">
                   <p>
-                    Farm asks only for permission to like and unlike X posts for
-                    you, plus permission to stay connected so you do not have to
-                    relink every session.
+                    Farm asks for permission to identify the X account you link,
+                    like and unlike X posts for you, and stay connected so you
+                    do not have to relink every session.
                   </p>
                   <p>
-                    Farm uses this only for X post URLs submitted in Farm. We do
-                    not request read, post, DM, follow, bookmark, email, or
-                    password access.
+                    X requires read scopes for its user-context like API. Farm
+                    uses them only to get the numeric X user ID and like or
+                    unlike post URLs you provide. We do not request DM, follow,
+                    bookmark, email, or password access.
                   </p>
                   <p>
                     On X, you should see Farm App requesting access before you

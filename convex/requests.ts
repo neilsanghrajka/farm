@@ -76,7 +76,7 @@ async function activeMembership(
   return row?.status === "active" ? row : null
 }
 
-function hasRequiredScopes(account: Doc<"accounts">) {
+function hasRequiredScopes(account: { scopes: string[] }) {
   return requiredXScopes.every((scope) => account.scopes.includes(scope))
 }
 
@@ -122,12 +122,15 @@ async function xEligibilityForUser(
 }
 
 async function activeMembers(ctx: QueryCtx | MutationCtx, farmId: Id<"farms">) {
-  return await ctx.db
+  const members = []
+  for await (const membership of ctx.db
     .query("farmMemberships")
     .withIndex("by_farmId_and_status", (q) =>
       q.eq("farmId", farmId).eq("status", "active")
-    )
-    .take(100)
+    )) {
+    members.push(membership)
+  }
+  return members
 }
 
 function parseXPostUrl(value: string): ParsedXPost {
@@ -267,10 +270,22 @@ async function verifyXPost(parsed: ParsedXPost): Promise<VerifiedXPost> {
 }
 
 function visibleStatus(status: Doc<"engagementAttempts">["status"]) {
-  if (status === "failed_retryable" || status === "failed_final") {
+  if (status === "failed_retryable") {
+    return "pending" as const
+  }
+  if (status === "failed_final") {
     return "failed" as const
   }
-  if (status === "skipped_no_x" || status === "skipped_ineligible") {
+  if (status === "skipped_no_x") {
+    return "skipped_no_x" as const
+  }
+  if (
+    status === "skipped_ineligible" ||
+    status === "skipped_not_selected" ||
+    status === "skipped_cap_exceeded" ||
+    status === "skipped_post_unavailable" ||
+    status === "skipped_canceled"
+  ) {
     return "skipped" as const
   }
   return status
@@ -395,6 +410,7 @@ export const createVerifiedFromHome = internalMutation({
 
     const members = await activeMembers(ctx, farm._id)
     const now = Date.now()
+    const engagementDeadlineAt = now + 6 * 60 * 60 * 1000
     const attempts: AttemptSnapshot[] = []
     let pendingCount = 0
     let skippedCount = 0
@@ -442,6 +458,10 @@ export const createVerifiedFromHome = internalMutation({
         : {}),
       action: "like",
       status: pendingCount > 0 ? "active" : "completed",
+      engagementDeadlineAt,
+      autoEngageStatus: pendingCount > 0 ? "active" : "completed",
+      selectedAttemptCount: 0,
+      maxSelectedAttempts: 50,
       targetMemberCount: members.length,
       likedCount: 0,
       pendingCount,
@@ -463,9 +483,26 @@ export const createVerifiedFromHome = internalMutation({
         provider: "x",
         status: attempt.status,
         attemptCount: 0,
+        ...(attempt.eligibility.status === "missing"
+          ? {
+              selectionStatus: "missing_x" as const,
+              skipReason: "no_x" as const,
+            }
+          : attempt.eligibility.status === "ineligible"
+            ? {
+                selectionStatus: "ineligible" as const,
+                skipReason: "ineligible" as const,
+              }
+            : {}),
         createdAt: now,
         updatedAt: now,
         ...(attempt.status === "pending" ? {} : { completedAt: now }),
+      })
+    }
+
+    if (pendingCount > 0) {
+      await ctx.scheduler.runAfter(0, internal.autoEngage.enqueueRequest, {
+        requestId,
       })
     }
 
@@ -594,6 +631,9 @@ export const get = query({
     if (!viewerMembership) return { status: "unavailable" as const }
 
     const requester = await ctx.db.get(request.requesterProfileId)
+    const canManageAutoEngage =
+      request.requesterUserId === current.userId ||
+      viewerMembership.role === "admin"
     const attempts = await ctx.db
       .query("engagementAttempts")
       .withIndex("by_requestId_and_status", (q) =>
@@ -610,7 +650,7 @@ export const get = query({
         name: profile.name,
         initials: initials(profile.name),
         providerUsername: attempt.providerUsername ?? null,
-        status: attempt.status,
+        status: visibleStatus(attempt.status),
         visibleStatus: visibleStatus(attempt.status),
       })
     }
@@ -620,8 +660,9 @@ export const get = query({
         liked: 0,
         already_liked: 1,
         pending: 2,
-        skipped: 3,
-        failed: 4,
+        skipped_no_x: 3,
+        skipped: 4,
+        failed: 5,
       } as const
       const rankA = statusRank[a.visibleStatus]
       const rankB = statusRank[b.visibleStatus]
@@ -635,9 +676,16 @@ export const get = query({
         id: request._id,
         postUrl: request.postUrl,
         postTitle: request.postTitle ?? "X post",
+        postTextPreview: request.postTextPreview ?? null,
         postAuthorUsername: request.postAuthorUsername ?? null,
+        postAuthorDisplayName: request.postAuthorDisplayName ?? null,
         action: request.action,
         status: request.status,
+        engagementDeadlineAt: request.engagementDeadlineAt ?? null,
+        autoEngageStatus: request.autoEngageStatus ?? null,
+        stopReason: request.stopReason ?? null,
+        selectedAttemptCount: request.selectedAttemptCount ?? null,
+        canManageAutoEngage,
         targetMemberCount: request.targetMemberCount,
         likedCount: request.likedCount,
         pendingCount: request.pendingCount,

@@ -137,6 +137,32 @@ export default defineSchema({
       v.literal("failed"),
       v.literal("canceled")
     ),
+    engagementDeadlineAt: v.optional(v.number()),
+    autoEngageStatus: v.optional(
+      v.union(
+        v.literal("active"),
+        v.literal("paused"),
+        v.literal("stopped"),
+        v.literal("completed")
+      )
+    ),
+    pausedAt: v.optional(v.number()),
+    pausedByUserId: v.optional(v.id("users")),
+    resumedAt: v.optional(v.number()),
+    stoppedAt: v.optional(v.number()),
+    stopReason: v.optional(
+      v.union(
+        v.literal("post_unavailable"),
+        v.literal("engagement_window_expired"),
+        v.literal("canceled")
+      )
+    ),
+    selectedAttemptCount: v.optional(v.number()),
+    maxSelectedAttempts: v.optional(v.number()),
+    effectiveSelectedAttemptCap: v.optional(v.number()),
+    selectionSeed: v.optional(v.string()),
+    autoEngageStartedAt: v.optional(v.number()),
+    autoEngageCompletedAt: v.optional(v.number()),
     targetMemberCount: v.number(),
     likedCount: v.number(),
     pendingCount: v.number(),
@@ -182,6 +208,10 @@ export default defineSchema({
       v.literal("already_liked"),
       v.literal("skipped_no_x"),
       v.literal("skipped_ineligible"),
+      v.literal("skipped_not_selected"),
+      v.literal("skipped_cap_exceeded"),
+      v.literal("skipped_post_unavailable"),
+      v.literal("skipped_canceled"),
       v.literal("failed_retryable"),
       v.literal("failed_final")
     ),
@@ -190,6 +220,30 @@ export default defineSchema({
     lastErrorMessage: v.optional(v.string()),
     lastTriedAt: v.optional(v.number()),
     nextRetryAt: v.optional(v.number()),
+    scheduledAt: v.optional(v.number()),
+    startedAt: v.optional(v.number()),
+    reservationExpiresAt: v.optional(v.number()),
+    selectionStatus: v.optional(
+      v.union(
+        v.literal("selected"),
+        v.literal("not_selected"),
+        v.literal("cap_exceeded"),
+        v.literal("missing_x"),
+        v.literal("ineligible")
+      )
+    ),
+    selectionRank: v.optional(v.number()),
+    skipReason: v.optional(
+      v.union(
+        v.literal("no_x"),
+        v.literal("ineligible"),
+        v.literal("not_selected"),
+        v.literal("cap_exceeded"),
+        v.literal("engagement_window_expired"),
+        v.literal("post_unavailable"),
+        v.literal("canceled")
+      )
+    ),
     createdAt: v.number(),
     updatedAt: v.number(),
     completedAt: v.optional(v.number()),

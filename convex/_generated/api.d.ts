@@ -10,6 +10,7 @@
 
 import type * as accounts from "../accounts.js";
 import type * as auth from "../auth.js";
+import type * as autoEngage from "../autoEngage.js";
 import type * as farms from "../farms.js";
 import type * as health from "../health.js";
 import type * as http from "../http.js";
@@ -26,6 +27,7 @@ import type {
 declare const fullApi: ApiFromModules<{
   accounts: typeof accounts;
   auth: typeof auth;
+  autoEngage: typeof autoEngage;
   farms: typeof farms;
   health: typeof health;
   http: typeof http;

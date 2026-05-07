@@ -263,7 +263,7 @@ export const failXOAuthState = internalMutation({
 export const completeXOAuth = internalMutation({
   args: {
     state: v.string(),
-    providerAccountId: v.string(),
+    providerAccountId: v.optional(v.string()),
     username: v.optional(v.string()),
     displayName: v.optional(v.string()),
     scopes: v.array(v.string()),
@@ -297,10 +297,27 @@ export const completeXOAuth = internalMutation({
       throw new ConvexError("X authorization expired. Try again.")
     }
 
+    const existingForUser = await ctx.db
+      .query("accounts")
+      .withIndex("by_userId_and_provider", (q) =>
+        q.eq("userId", state.userId).eq("provider", "x")
+      )
+      .unique()
+    const reusableExistingForUser =
+      existingForUser?.status === "disconnected" ? null : existingForUser
+    const providerAccountId =
+      args.providerAccountId ?? reusableExistingForUser?.providerAccountId
+
+    if (!providerAccountId) {
+      throw new ConvexError(
+        "X did not return an account id with the requested scopes."
+      )
+    }
+
     const existingForXAccount = await ctx.db
       .query("accounts")
       .withIndex("by_provider_and_providerAccountId", (q) =>
-        q.eq("provider", "x").eq("providerAccountId", args.providerAccountId)
+        q.eq("provider", "x").eq("providerAccountId", providerAccountId)
       )
       .unique()
 
@@ -314,19 +331,12 @@ export const completeXOAuth = internalMutation({
       )
     }
 
-    const existingForUser = await ctx.db
-      .query("accounts")
-      .withIndex("by_userId_and_provider", (q) =>
-        q.eq("userId", state.userId).eq("provider", "x")
-      )
-      .unique()
-
     const now = Date.now()
     const account = {
       userId: state.userId,
       profileId: state.profileId,
       provider: "x" as const,
-      providerAccountId: args.providerAccountId,
+      providerAccountId,
       status: "linked" as const,
       scopes: args.scopes,
       encryptedAccessToken: args.encryptedAccessToken,
@@ -370,7 +380,7 @@ export const completeXOAuth = internalMutation({
 
     return {
       status: "linked" as const,
-      providerAccountId: args.providerAccountId,
+      providerAccountId,
       username: args.username ?? null,
       displayName: args.displayName ?? null,
     }

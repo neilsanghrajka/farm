@@ -14,13 +14,12 @@ type TokenResponse = {
   refresh_token?: string
   expires_in?: number
   scope?: string
+  user_id?: string
 }
 
-type XMeResponse = {
+type MeResponse = {
   data?: {
     id?: string
-    name?: string
-    username?: string
   }
 }
 
@@ -31,7 +30,7 @@ type EncryptedToken = {
 
 type CompleteXOAuthArgs = {
   state: string
-  providerAccountId: string
+  providerAccountId?: string
   username?: string
   displayName?: string
   scopes: string[]
@@ -131,26 +130,23 @@ export const handleXOAuthCallback = httpAction(async (ctx, request) => {
 
   try {
     const token = await exchangeCodeForToken(code, pendingState.codeVerifier)
-    const xUser = await fetchAuthenticatedXUser(token.access_token)
-    const providerAccountId = xUser.data?.id
+    let providerAccountId = providerAccountIdFromToken(token)
 
     if (!providerAccountId) {
-      throw new ConvexError("X did not return an account id.")
+      providerAccountId = await fetchAuthenticatedUserId(
+        token.access_token,
+        token.scope
+      )
     }
 
     const completeArgs: CompleteXOAuthArgs = {
       state,
-      providerAccountId,
       scopes: normalizeScopes(token.scope ?? process.env.X_OAUTH_SCOPES),
       encryptedAccessToken: await encryptToken(token.access_token),
     }
 
-    if (xUser.data?.username) {
-      completeArgs.username = xUser.data.username
-    }
-
-    if (xUser.data?.name) {
-      completeArgs.displayName = xUser.data.name
+    if (providerAccountId) {
+      completeArgs.providerAccountId = providerAccountId
     }
 
     if (token.refresh_token) {
@@ -166,7 +162,12 @@ export const handleXOAuthCallback = httpAction(async (ctx, request) => {
     await ctx.runMutation(internal.accounts.completeXOAuth, completeArgs)
 
     return redirectToApp(returnTo, { x_account: "connected" })
-  } catch {
+  } catch (error) {
+    console.warn(
+      "X OAuth callback failed",
+      error instanceof Error ? error.message : "Unknown error"
+    )
+
     await ctx.runMutation(internal.accounts.failXOAuthState, {
       state,
       error: "exchange_failed",
@@ -314,21 +315,76 @@ async function exchangeCodeForToken(code: string, codeVerifier: string) {
   return token as TokenResponse
 }
 
-async function fetchAuthenticatedXUser(accessToken: string) {
-  const url = new URL(X_ME_URL)
-  url.searchParams.set("user.fields", "username,name")
-
-  const response = await fetch(url, {
+async function fetchAuthenticatedUserId(
+  accessToken: string,
+  grantedScope: string | undefined
+) {
+  const response = await fetch(X_ME_URL, {
     headers: {
       Authorization: `Bearer ${accessToken}`,
     },
   })
 
   if (!response.ok) {
-    throw new ConvexError("Could not read the connected X account.")
+    console.warn("X /2/users/me failed", {
+      status: response.status,
+      grantedScope,
+      body: await safeErrorBody(response),
+    })
+    throw new ConvexError("X did not return the linked account id.")
   }
 
-  return (await response.json()) as XMeResponse
+  const me = (await response.json()) as MeResponse
+  const providerAccountId = maybeNumericId(me.data?.id)
+
+  if (!providerAccountId) {
+    console.warn("X /2/users/me returned no numeric id", {
+      grantedScope,
+      hasData: Boolean(me.data),
+    })
+    throw new ConvexError("X did not return the linked account id.")
+  }
+
+  return providerAccountId
+}
+
+async function safeErrorBody(response: Response) {
+  const text = await response.text()
+
+  return text.slice(0, 500)
+}
+
+function providerAccountIdFromToken(token: TokenResponse) {
+  return (
+    maybeNumericId(token.user_id) ??
+    providerAccountIdFromJwt(token.access_token) ??
+    providerAccountIdFromAccessToken(token.access_token)
+  )
+}
+
+function maybeNumericId(value: unknown) {
+  return typeof value === "string" && /^\d+$/.test(value) ? value : undefined
+}
+
+function providerAccountIdFromJwt(accessToken: string) {
+  const [, payload] = accessToken.split(".")
+  if (!payload) {
+    return undefined
+  }
+
+  try {
+    const decoded = new TextDecoder().decode(base64UrlDecode(payload))
+    const claims = JSON.parse(decoded) as Record<string, unknown>
+    return maybeNumericId(claims.sub) ?? maybeNumericId(claims.user_id)
+  } catch {
+    return undefined
+  }
+}
+
+function providerAccountIdFromAccessToken(accessToken: string) {
+  const [prefix] = accessToken.split(/[^0-9]/)
+
+  return maybeNumericId(prefix)
 }
 
 function appBaseUrl() {

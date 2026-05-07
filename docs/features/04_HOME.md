@@ -223,9 +223,10 @@ rows below.
   - Convex guidance requires auth-derived user identity, validators, indexes
     over filters, bounded reads, and no sensitive public functions.
   - X docs confirm the relevant v2 shape: OAuth 2.0 Authorization Code with
-    PKCE supports fine-grained scopes; Farm intentionally requests only
-    `like.write offline.access` for user linking. Tweet lookup uses app-only
-    `GET /2/tweets/:id`; likes use user-context `POST /2/users/:id/likes`.
+    PKCE supports fine-grained scopes; Farm requests `tweet.read users.read
+    like.write offline.access` for user linking. X requires the read scopes for
+    the numeric X user ID and user-context like endpoint; Farm uses them only to
+    identify the linked account and like submitted post URLs.
   - Existing WIP request files in this workspace indicate the expected tables
     are `engagementRequests` and `engagementAttempts`; implementation should
     coordinate with the WIP branch instead of re-creating divergent schema.

@@ -13,6 +13,8 @@ or intended v1 behavior.
   Farm detail, join, and member detail states.
 - `03_FARM/farm-flow-confirmations.png` - joined, delete, leave, and invalid
   Farm link states.
+- `06_AUTO_ENGAGE/post-detail-flow.png` - Post detail active, paused, and
+  stopped/unavailable Auto Engage states.
 - `ask-engagement.png` - Home request composer, readiness strip, and recent
   request reference.
 - `request-status.png` - request status page reference.

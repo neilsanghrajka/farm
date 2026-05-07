@@ -1,12 +1,13 @@
-# Request Status
+# Post Detail
 
 Status: Draft
 
 ## Purpose
 
-Define the engagement request detail experience: a user opens a request for an
-X post, sees what Farm attempted, understands which members liked, which are
-pending, which were skipped or failed, and can return to Home or Farm context.
+Define the post detail experience after a user requests engagement: a user opens
+a request for an X post, sees the post, sees Farm activity under it, understands
+which members liked, which are pending, which were skipped or failed, and can
+pause or resume Auto Engage for that post.
 
 This feature matters because automatic engagement is only trustworthy if users
 can inspect the outcome. A request should not feel like a black box. Users need
@@ -19,11 +20,22 @@ asked my Farm to like this post?"
   Farm they currently belong to.
 - Home accepts an X post URL and Farm selection, creates a request, snapshots
   active Farm members as target attempts, and routes to the request detail page.
-- The request detail page shows the X post URL, cached X post metadata when
-  available, Farm context, requester context, and request timing.
+- After a successful Home request, the user lands on the same route at
+  `/requests/[requestId]`, but the user-facing screen is titled `Post detail`.
+- The post detail page shows an embedded X post preview when available, with
+  cached X post metadata and a readable fallback when embeds or metadata are
+  unavailable.
+- The page shows Farm context, requester context, request timing, and an
+  activity feed under the post.
 - The page shows high-level progress: likes received through Farm, total target
   members, pending count, skipped count, failed count, and aggregate request
   status.
+- The page makes pacing visible with plain copy that engagement happens over
+  the next few hours and that a few likes should start quickly.
+- The page supports a post-level `Pause auto likes` control for active requests
+  and `Resume auto likes` for paused requests.
+- The page shows automatic stopped states when Farm detects that the X post was
+  deleted, made private, or otherwise unavailable.
 - The page shows one outcome row per targeted Farm member for v1.
 - Outcome rows support these user-facing states:
   - `Liked`
@@ -42,8 +54,8 @@ asked my Farm to like this post?"
 - Home shows recent request rows that link back to request detail.
 - The feature defines the read model and backend status contract needed by Home
   and Auto Engage, without taking over their implementation scope.
-- Existing mocks remain the visual source of truth for layout, density,
-  typography, icons, and control treatment.
+- The new Post detail mock is the visual source of truth for the active,
+  paused, and stopped/unavailable request states.
 
 ## Future Scope
 
@@ -54,7 +66,7 @@ asked my Farm to like this post?"
 - Retrying failed attempts automatically or manually.
 - Detailed member/account drill-down screens.
 - Admin-only request controls or moderation actions.
-- Editing or canceling an in-flight request.
+- Editing request contents after creation.
 - Public share pages for non-members.
 - Live X post metric refresh beyond Farm-recorded attempt status.
 - Comments, reposts, bookmarks, follows, LinkedIn, or any non-like engagement.
@@ -83,14 +95,42 @@ asked my Farm to like this post?"
 
 ### Existing Reference Mocks
 
+- Approved Post detail mock:
+  `docs/mocks/06_AUTO_ENGAGE/post-detail-flow.png`
 - Primary request status reference: `docs/mocks/request-status.png`
 - Home reference for recent request entry: `docs/mocks/ask-engagement.png`
 - Farm/member row density reference:
   `docs/mocks/03_FARM/farm-flow-main.png`
 
+![Post detail Auto Engage mock](../mocks/06_AUTO_ENGAGE/post-detail-flow.png)
+
 ![Request status reference mock](../mocks/request-status.png)
 
-The request status mock shows this screen packet:
+The Post detail mock supersedes the older request-status mock for the
+Auto Engage v1 flow. It shows this screen packet:
+
+1. `active-post-detail`
+   - Top nav: back button, centered title `Post detail`, trailing menu icon.
+   - Embedded X post preview at the top.
+   - Large progress headline such as `4 of 42 likes`.
+   - Active, pending, and window pills.
+   - Pacing copy: `A few likes start now. The rest roll in over the next few
+     hours.`
+   - Activity rows under the post.
+   - Bottom actions: `Pause auto likes` and `Copy link`.
+2. `paused-post-detail`
+   - Same post preview and progress treatment.
+   - Paused status pill and explanation copy.
+   - Activity rows showing pause and pending state.
+   - Primary action: `Resume auto likes`.
+3. `stopped-post-detail`
+   - Muted unavailable post card.
+   - Stopped/failed/skipped status pills.
+   - Explanation copy that Farm stopped processing automatically.
+   - Activity rows showing post unavailable and remaining likes stopped.
+   - Bottom action: `Ask again`.
+
+The older request status mock remains useful for density and row treatment:
 
 1. `request-status`
    - Top nav: back button, centered title `Request status`, optional trailing
@@ -109,22 +149,31 @@ detail route once Home owns request creation/listing.
 
 ### Visual Thesis
 
-Request status should feel like a native mobile receipt: quiet white canvas,
-large confident progress, simple member rows, green success states, and no
-dashboard chrome.
+Post detail should feel like a native mobile receipt for a single X post: quiet
+white canvas, the post first, large confident progress, simple activity rows,
+green success states, and no dashboard chrome.
 
 ### Content Plan
 
 - Header: orient the user inside a single request.
-- Post block: identify the X post and give an external escape hatch.
+- Post block: show the embedded X post when possible and give an external
+  escape hatch.
 - Progress block: answer the main question in one glance.
-- Member outcomes: show exactly who is done, pending, skipped, or failed.
-- Bottom actions: copy the status link or start a new request path.
+- Pacing block: explain that Farm starts some likes quickly and continues over
+  the next few hours.
+- Activity: show what happened under the post, including liked, pending,
+  skipped, paused, stopped, or unavailable-post events.
+- Bottom actions: pause/resume Auto Engage, copy the status link, or start a
+  new request path.
 
 ### Interaction Thesis
 
 - Status updates should refresh in place through Convex queries without
   reshaping the screen.
+- Pause/resume should be an explicit user action on the post detail page. Pause
+  stops future pending likes; it does not undo completed likes.
+- Deleted, private, or unavailable X posts should stop future Auto Engage
+  automatically and show a stopped state without requiring user action.
 - Copy-link feedback should be immediate and stable: button label changes
   briefly to `Copied`.
 - Member rows should be comfortable tap targets, but v1 does not need a member
@@ -157,11 +206,9 @@ dashboard chrome.
 
 ### Design Approval Status
 
-- `docs/mocks/request-status.png` is the current visual reference for this
-  feature.
-- No new `docs/mocks/05_POST/` mock packet was generated for this spec pass.
-  If product direction changes from the existing request-status mock, generate
-  and approve a dedicated mock packet before implementation.
+- `docs/mocks/06_AUTO_ENGAGE/post-detail-flow.png` is the current visual
+  reference for this feature's active, paused, and stopped states.
+- `docs/mocks/request-status.png` remains a secondary density reference.
 
 ## Product Requirements
 
@@ -177,27 +224,73 @@ blindly.
 Make each engagement request auditable and easy to revisit, while keeping the
 surface lightweight enough to use on a phone.
 
-### Primary User Journey: View Request Status
+### Primary User Journey: View Post Detail
 
 - Entry point: authenticated user opens `/requests/[requestId]` from Home,
   Farm context, history, or a copied status link.
-- User intent: check the outcome of one engagement request.
+- User intent: check the post and the current Farm activity for one engagement
+  request.
 - Steps:
   1. System authenticates the user.
   2. System loads the request by id.
   3. System verifies the user is an active member of the request's Farm.
   4. System loads aggregate request counts and targeted member outcomes.
-  5. User sees the X post, progress, status pills, and member list.
+  5. User sees the embedded X post or fallback, progress, status pills, pacing
+     copy, and activity/member rows.
   6. As backend attempt rows update, the page reflects the latest status.
 - System behavior:
   - Authorization is derived from Convex Auth and Farm membership server-side.
   - The page never trusts client-provided user ids for access checks.
-  - Cached X post metadata is shown when available.
+  - Embedded X post preview is shown when available.
+  - Cached X post metadata is shown when embed loading or metadata is available
+    server-side.
   - If cached X metadata is missing, show the original URL and a generic
     `X post` label.
 - Success outcome: user understands the current request status.
 - Failure outcome: user sees a concise unavailable or permission state.
 - Next destination: stay on request detail, return Home, or return to the Farm.
+
+### Secondary User Journey: Pause Or Resume Auto Likes
+
+- Entry point: requester or authorized Farm member opens an active Post detail.
+- User intent: stop Farm from running any more automatic likes for this post.
+- Steps:
+  1. User taps `Pause auto likes`.
+  2. System records the request as paused.
+  3. Scheduled pending jobs no-op while the request is paused.
+  4. Page updates to a paused state with `Resume auto likes`.
+  5. User may tap `Resume auto likes` to allow pending jobs to continue.
+- System behavior:
+  - Completed likes remain completed and are not undone.
+  - Paused requests retain pending rows, but pending jobs must not call X while
+    paused.
+  - Resume must respect the original six-hour processing deadline from Auto
+    Engage unless the backend spec explicitly changes that deadline behavior.
+- Success outcome: user has clear control over future Auto Engage for the post.
+- Failure outcome: user sees a concise error and the request remains in its
+  prior state.
+- Next destination: stay on Post detail.
+
+### Secondary User Journey: Post Becomes Unavailable
+
+- Entry point: backend detects the target X post is deleted, private, or
+  unavailable while Auto Engage is processing.
+- User intent: no action required; user needs a clear explanation when viewing
+  Post detail.
+- Steps:
+  1. Worker receives an X response indicating the post cannot be liked because
+     it is deleted, private, or unavailable.
+  2. System stops remaining pending Auto Engage for that request.
+  3. Post detail replaces the embed with an unavailable post card.
+  4. Activity shows that remaining likes were stopped automatically.
+- System behavior:
+  - Do not require user action to stop processing.
+  - Do not expose raw X API errors.
+  - Do not continue retrying if the condition is final.
+- Success outcome: user understands why processing stopped.
+- Failure outcome: if the post later becomes available, the request remains
+  stopped unless a future feature adds manual retry.
+- Next destination: user may tap `Ask again` only through the normal Home flow.
 
 ### Secondary User Journey: View Historical Request
 
@@ -295,11 +388,13 @@ surface lightweight enough to use on a phone.
 
 ### Screen/Page Inventory
 
-- Request detail at `/requests/[requestId]`.
+- Post detail at `/requests/[requestId]`.
 - Request loading state.
 - Request unavailable or unauthorized state.
 - Request empty/no-targets state.
 - Request active state.
+- Request paused state.
+- Request stopped because post is unavailable/deleted/private.
 - Request completed state.
 - Request completed-with-skips or failed state.
 - Copy-link success and failure states.
@@ -311,7 +406,11 @@ surface lightweight enough to use on a phone.
 - No permission to view private request.
 - X post metadata available.
 - X post metadata unavailable.
+- X post embed available.
+- X post deleted/private/unavailable.
 - Active aggregate status.
+- Paused aggregate/control state.
+- Stopped aggregate/control state.
 - Completed aggregate status.
 - Partial/skipped aggregate status.
 - Failed aggregate status.
@@ -327,8 +426,17 @@ surface lightweight enough to use on a phone.
 
 ### Copy Requirements
 
-- Screen title: `Request status`
+- Screen title: `Post detail`
 - Post section label: `X post`
+- Pacing copy: `A few likes start now. The rest roll in over the next few hours.`
+- Pause action: `Pause auto likes`
+- Resume action: `Resume auto likes`
+- Paused pill: `Paused`
+- Paused body: `Auto likes are paused for this post. Pending likes will not run until resumed.`
+- Unavailable post title: `X post unavailable`
+- Unavailable post body: `The post may have been deleted or made private.`
+- Stopped pill: `Stopped`
+- Stopped body: `Farm stopped processing this request automatically. No more likes will run.`
 - Metadata fallback title: `X post`
 - Progress headline format: `{likedCount} of {targetMemberCount} likes`
 - Active pill: `Active`
@@ -1014,4 +1122,5 @@ X linking, and automatic likes remain owned by their separate feature specs.
 Expanded current scope to include the narrow Home request creation path needed
 for an end-to-end Request Status flow: X post URL input, Farm selection, request
 record creation, pending attempt snapshot, recent request rows, and routing to
-request detail. Advanced Home behavior and automatic X likes remain separate.
+request detail. Advanced Home behavior remains separate; automatic X likes are
+now owned by `06_AUTO_ENGAGE`.
