@@ -22,6 +22,7 @@ import {
   X,
 } from "lucide-react"
 import NextLink from "next/link"
+import { useSearchParams } from "next/navigation"
 import { useMemo, useState } from "react"
 
 import { Alert, AlertDescription } from "@/components/ui/alert"
@@ -91,6 +92,7 @@ function RequestStatusContent({
   requestId: Id<"engagementRequests">
 }) {
   const detail = useQuery(api.requests.get, { requestId })
+  const searchParams = useSearchParams()
   const pauseAutoEngage = useMutation(api.autoEngage.pauseRequest)
   const resumeAutoEngage = useMutation(api.autoEngage.resumeRequest)
   const [copied, setCopied] = useState(false)
@@ -139,6 +141,7 @@ function RequestStatusContent({
   const postState = getPostState(request)
   const statusCopy = getStatusCopy(request, postState)
   const outcomes = detail.outcomes as RequestOutcome[]
+  const openedExistingRequest = searchParams.get("reused") === "1"
 
   async function updateAutoEngage(action: "pause" | "resume") {
     setControlError(null)
@@ -165,6 +168,16 @@ function RequestStatusContent({
     <div className="flex min-h-[calc(100svh-4rem)] flex-col">
       <div className="space-y-6 pb-7">
         <TopNav title="Post detail" backHref="/" trailing={<MoreButton />} />
+
+        {openedExistingRequest ? (
+          <Alert className="border-primary/20 bg-primary/5 text-foreground">
+            <Repeat2 className="size-5 text-primary" aria-hidden="true" />
+            <AlertDescription className="text-base leading-7">
+              This post already has an active request in {detail.farm.name}.
+              Opening the existing request.
+            </AlertDescription>
+          </Alert>
+        ) : null}
 
         <section className="space-y-3 pt-2">
           <XPostPreview request={request} unavailable={postState.stopped} />

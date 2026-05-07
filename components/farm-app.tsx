@@ -291,6 +291,14 @@ function HomeScreen({
         farmId: selectedFarmId,
         postUrl: trimmedPostUrl,
       })
+      if (result.reusedExisting) {
+        const farmName = selectedFarm?.name ?? "this Farm"
+        setRequestError(
+          `This post already has an active request in ${farmName}. Opening the existing request.`
+        )
+        window.location.href = `/requests/${result.requestId}?reused=1`
+        return
+      }
       window.location.href = `/requests/${result.requestId}`
     } catch (cause) {
       setRequestError(message(cause, "Could not create the request."))
