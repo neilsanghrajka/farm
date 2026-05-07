@@ -827,7 +827,7 @@ Backend requirements:
   "accountId": "accounts:...",
   "provider": "x",
   "providerAccountId": "<x-user-id>",
-  "providerUsername": "neilsanghrajka",
+  "providerUsername": "<x-handle>",
   "status": "liked",
   "attemptCount": 1,
   "createdAt": 1760000000000,

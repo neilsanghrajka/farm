@@ -14,6 +14,7 @@
 - Public/source hygiene:
   - Do not commit live account-specific identifiers, deployment names, dashboard URLs, production URLs, callback URLs, invite codes, QA account emails, real user handles, personal emails, project/team IDs, API responses, or local absolute paths. Use env var names, placeholders, or an untracked private runbook instead.
   - Treat X app metadata (`X_CLIENT_ID`, `X_APP_ID`, `X_ENROLLED_ACCOUNT_ID`, callback URLs, test handles/user IDs), Convex/Vercel project/deployment IDs, AgentMail inbox identities, and QA Farm IDs as private even when they are not classic secrets.
+  - Keep provider account IDs and other stable external user IDs server-side. Public Convex queries and client props should return display-safe handles/status only unless the identifier is explicitly meant for public UI.
   - Before adding docs, screenshots, generated images, or mock assets, scan them for real names, handles, emails, invite links/codes, production URLs, dashboard URLs, C2PA/tool metadata, and local paths. Regenerate or anonymize assets when needed.
   - Runtime code must read deployment/app-specific values from env and fail clearly if required env is missing. Do not add hardcoded production fallbacks for private or account-specific values.
   - Before making the repo public or pushing open-source cleanup, run targeted scans for known live identifiers and remember that removing values from the current tree does not remove them from git history.

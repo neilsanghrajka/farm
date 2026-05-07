@@ -1,6 +1,6 @@
 "use client"
 
-import { HelpCircle } from "lucide-react"
+import { HelpCircle, ShieldCheck } from "lucide-react"
 import Image from "next/image"
 
 import { Button } from "@/components/ui/button"
@@ -52,6 +52,51 @@ export function FarmExplainerDialog({
           height={1672}
           priority
           src="/farm-how-it-works.png"
+          width={941}
+        />
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+export function FarmSafetyDialog({
+  className,
+  variant = "link",
+}: {
+  className?: string
+  variant?: "link" | "outline"
+}) {
+  return (
+    <Dialog>
+      <DialogTrigger asChild>
+        <Button
+          className={cn(
+            variant === "link"
+              ? "h-auto px-0 text-base font-medium"
+              : "h-12 w-full rounded-xl text-base",
+            className
+          )}
+          type="button"
+          variant={variant}
+        >
+          <ShieldCheck className="size-4" aria-hidden="true" />
+          Is Farm safe to use?
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="max-h-[calc(100svh-2rem)] max-w-[min(calc(100vw-2rem),26rem)] overflow-y-auto p-2">
+        <DialogHeader className="sr-only">
+          <DialogTitle>Is Farm safe to use?</DialogTitle>
+          <DialogDescription>
+            A simple visual explanation of Farm safety, X API access, network
+            likes, and staggered likes.
+          </DialogDescription>
+        </DialogHeader>
+        <Image
+          alt="Farm is safe to use: official X Likes API, no extra access, your network only, and staggered likes."
+          className="h-auto w-full rounded-lg"
+          height={1672}
+          priority
+          src="/farm-safe-to-use.png"
           width={941}
         />
       </DialogContent>

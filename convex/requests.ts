@@ -577,10 +577,8 @@ export const getLinkedXStatus = query({
         username: eligible.username ?? null,
         handle: eligible.username ? `@${eligible.username}` : null,
         account: {
-          id: eligible._id,
           username: eligible.username ?? null,
           displayName: eligible.displayName ?? null,
-          providerAccountId: eligible.providerAccountId,
         },
       }
     }
@@ -603,10 +601,8 @@ export const getLinkedXStatus = query({
       username: account.username ?? null,
       handle: account.username ? `@${account.username}` : null,
       account: {
-        id: account._id,
         username: account.username ?? null,
         displayName: account.displayName ?? null,
-        providerAccountId: account.providerAccountId,
         accountStatus: account.status,
       },
     }

@@ -13,7 +13,10 @@ import {
 } from "react"
 
 import { Button } from "@/components/ui/button"
-import { FarmExplainerDialog } from "@/components/farm-explainer-dialog"
+import {
+  FarmExplainerDialog,
+  FarmSafetyDialog,
+} from "@/components/farm-explainer-dialog"
 import { InstallPrompt } from "@/components/install-prompt"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -266,8 +269,9 @@ export function LoginScreen({ children }: { children?: ReactNode }) {
             {isProfileStep ? "Create your profile" : "Sign up or log in"}
           </h1>
           {!isProfileStep ? (
-            <div className="mt-3 flex justify-center">
+            <div className="mt-3 flex flex-col items-center gap-2">
               <FarmExplainerDialog />
+              <FarmSafetyDialog />
             </div>
           ) : null}
           {isProfileStep ? (

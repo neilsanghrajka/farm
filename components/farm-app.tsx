@@ -26,7 +26,10 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { FarmExplainerDialog } from "@/components/farm-explainer-dialog"
+import {
+  FarmExplainerDialog,
+  FarmSafetyDialog,
+} from "@/components/farm-explainer-dialog"
 import { InstallPrompt } from "@/components/install-prompt"
 import {
   Card,
@@ -323,6 +326,7 @@ function HomeScreen({
       </header>
 
       <InstallPrompt />
+      <FarmSafetyDialog variant="outline" />
 
       <form className="space-y-5" noValidate onSubmit={handleRequestSubmit}>
         <div>
@@ -781,123 +785,126 @@ function SettingsScreen() {
 
       <section className="space-y-3">
         <SectionLabel>Connected accounts</SectionLabel>
-        <Card className="py-0">
-          <CardContent className="px-4 py-4">
-            <div className="flex items-center gap-4">
-              <div className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-muted">
-                <XLogoMark className="size-5" />
-              </div>
-              <div className="min-w-0 flex-1">
-                <h2 className="truncate text-lg font-semibold">X account</h2>
-                <p className="mt-1 truncate text-base text-muted-foreground">
-                  {getXAccountSubtitle(xAccount)}
-                </p>
-              </div>
-              {xAccount?.status === "linked" ? (
-                <Button
-                  className="h-10 shrink-0 rounded-xl border-destructive text-destructive hover:bg-destructive/10"
-                  disabled={isDisconnectingX}
-                  onClick={() => void handleDisconnectX()}
-                  type="button"
-                  variant="outline"
-                >
-                  {isDisconnectingX ? "Disconnecting" : "Disconnect"}
-                </Button>
-              ) : (
-                <Button
-                  className="h-10 shrink-0 rounded-xl"
-                  disabled={xAccount === undefined || isConnectingX}
-                  onClick={handleOpenXLink}
-                  type="button"
-                >
-                  {isConnectingX
-                    ? "Opening X"
-                    : xAccount?.status === "needs_reconnect"
-                      ? "Reconnect"
-                      : "Link"}
-                </Button>
-              )}
-            </div>
-            <Dialog
-              open={isXConsentOpen}
-              onOpenChange={(open) => {
-                if (!isConnectingX) {
-                  setIsXConsentOpen(open)
-                }
-              }}
-            >
-              <DialogContent>
-                <DialogHeader className="items-center text-center">
-                  <div className="flex size-12 items-center justify-center rounded-xl bg-muted">
-                    <XLogoMark className="size-5" />
-                  </div>
-                  <DialogTitle>Connect X</DialogTitle>
-                  <DialogDescription>
-                    Farm will send you to X to approve access.
-                  </DialogDescription>
-                </DialogHeader>
-                <div className="space-y-3 text-sm leading-6 text-muted-foreground">
-                  <p>Farm uses only official X APIs.</p>
-                  <p>
-                    Farm asks for permission to identify the X account you link,
-                    like or unlike only the X post links you submit in Farm,
-                    and stay connected so you do not have to relink every
-                    session.
-                  </p>
-                  <p>
-                    X requires read scopes for its user-context like API. Farm
-                    uses them only to identify the linked account and process
-                    submitted post URLs.
-                  </p>
-                  <p>
-                    Farm cannot read your DMs, follow people, see your password,
-                    or post anything new.
+        <div className="space-y-3">
+          <Card className="py-0">
+            <CardContent className="px-4 py-4">
+              <div className="flex items-center gap-4">
+                <div className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-muted">
+                  <XLogoMark className="size-5" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <h2 className="truncate text-lg font-semibold">X account</h2>
+                  <p className="mt-1 truncate text-base text-muted-foreground">
+                    {getXAccountSubtitle(xAccount)}
                   </p>
                 </div>
-                <label className="flex items-center gap-3 text-sm text-muted-foreground">
-                  <Checkbox
-                    checked={hideXConsentNextTime}
-                    disabled={isConnectingX}
-                    onCheckedChange={(checked) =>
-                      setHideXConsentNextTime(checked === true)
-                    }
-                  />
-                  <span>Don&apos;t show this again</span>
-                </label>
-                <DialogFooter>
-                  <DialogClose asChild>
-                    <Button
-                      disabled={isConnectingX}
-                      type="button"
-                      variant="outline"
-                    >
-                      Cancel
-                    </Button>
-                  </DialogClose>
+                {xAccount?.status === "linked" ? (
                   <Button
-                    disabled={isConnectingX}
-                    onClick={() => void handleConnectX()}
+                    className="h-10 shrink-0 rounded-xl border-destructive text-destructive hover:bg-destructive/10"
+                    disabled={isDisconnectingX}
+                    onClick={() => void handleDisconnectX()}
+                    type="button"
+                    variant="outline"
+                  >
+                    {isDisconnectingX ? "Disconnecting" : "Disconnect"}
+                  </Button>
+                ) : (
+                  <Button
+                    className="h-10 shrink-0 rounded-xl"
+                    disabled={xAccount === undefined || isConnectingX}
+                    onClick={handleOpenXLink}
                     type="button"
                   >
-                    {isConnectingX ? "Opening X" : "Continue to X"}
+                    {isConnectingX
+                      ? "Opening X"
+                      : xAccount?.status === "needs_reconnect"
+                        ? "Reconnect"
+                        : "Link"}
                   </Button>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
-            {xNotice ? (
-              <Alert className="mt-3 border-primary/20 bg-primary/5 text-primary">
-                <AlertDescription className="text-primary">
-                  {xNotice}
-                </AlertDescription>
-              </Alert>
-            ) : null}
-            {xError ? (
-              <Alert className="mt-3" variant="destructive">
-                <AlertDescription>{xError}</AlertDescription>
-              </Alert>
-            ) : null}
-          </CardContent>
-        </Card>
+                )}
+              </div>
+              <Dialog
+                open={isXConsentOpen}
+                onOpenChange={(open) => {
+                  if (!isConnectingX) {
+                    setIsXConsentOpen(open)
+                  }
+                }}
+              >
+                <DialogContent>
+                  <DialogHeader className="items-center text-center">
+                    <div className="flex size-12 items-center justify-center rounded-xl bg-muted">
+                      <XLogoMark className="size-5" />
+                    </div>
+                    <DialogTitle>Connect X</DialogTitle>
+                    <DialogDescription>
+                      Farm will send you to X to approve access.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="space-y-3 text-sm leading-6 text-muted-foreground">
+                    <p>Farm uses only official X APIs.</p>
+                    <p>
+                      Farm asks for permission to identify the X account you
+                      link, like or unlike only the X post links you submit in
+                      Farm, and stay connected so you do not have to relink
+                      every session.
+                    </p>
+                    <p>
+                      X requires read scopes for its user-context like API. Farm
+                      uses them only to identify the linked account and process
+                      submitted post URLs.
+                    </p>
+                    <p>
+                      Farm cannot read your DMs, follow people, see your
+                      password, or post anything new.
+                    </p>
+                  </div>
+                  <label className="flex items-center gap-3 text-sm text-muted-foreground">
+                    <Checkbox
+                      checked={hideXConsentNextTime}
+                      disabled={isConnectingX}
+                      onCheckedChange={(checked) =>
+                        setHideXConsentNextTime(checked === true)
+                      }
+                    />
+                    <span>Don&apos;t show this again</span>
+                  </label>
+                  <DialogFooter>
+                    <DialogClose asChild>
+                      <Button
+                        disabled={isConnectingX}
+                        type="button"
+                        variant="outline"
+                      >
+                        Cancel
+                      </Button>
+                    </DialogClose>
+                    <Button
+                      disabled={isConnectingX}
+                      onClick={() => void handleConnectX()}
+                      type="button"
+                    >
+                      {isConnectingX ? "Opening X" : "Continue to X"}
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+              {xNotice ? (
+                <Alert className="mt-3 border-primary/20 bg-primary/5 text-primary">
+                  <AlertDescription className="text-primary">
+                    {xNotice}
+                  </AlertDescription>
+                </Alert>
+              ) : null}
+              {xError ? (
+                <Alert className="mt-3" variant="destructive">
+                  <AlertDescription>{xError}</AlertDescription>
+                </Alert>
+              ) : null}
+            </CardContent>
+          </Card>
+          <FarmSafetyDialog variant="outline" />
+        </div>
       </section>
 
       <section className="space-y-3">

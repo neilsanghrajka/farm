@@ -1,7 +1,15 @@
+function requiredEnv(name: string) {
+  const value = process.env[name]
+  if (!value) {
+    throw new Error(`Missing required environment variable: ${name}`)
+  }
+  return value
+}
+
 const authConfig = {
   providers: [
     {
-      domain: process.env.CONVEX_SITE_URL,
+      domain: requiredEnv("CONVEX_SITE_URL"),
       applicationID: "convex",
     },
   ],

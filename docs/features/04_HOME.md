@@ -977,7 +977,7 @@ Example:
   "accountId": "accounts:...",
   "provider": "x",
   "providerAccountId": "<x-user-id>",
-  "providerUsername": "neilsanghrajka",
+  "providerUsername": "<x-handle>",
   "status": "pending",
   "attemptCount": 0,
   "createdAt": 1760000000000,

@@ -142,7 +142,7 @@ Test users:
 
 - Admin: stored in private QA notes
 - Member: stored in private QA notes
-- Farm: `QA Farm 75527406`
+- Farm: stored in private QA notes
 - Farm id: stored in private QA notes
 - Invite code: stored in private QA notes
 
