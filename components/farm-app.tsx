@@ -9,6 +9,7 @@ import {
   Home,
   Link as LinkIcon,
   LogOut,
+  Send,
   Settings,
   Sparkles,
   Sprout,
@@ -93,6 +94,7 @@ type FarmAppProps =
     }
   | { view: "settings" }
   | { view: "farms" }
+  | { view: "posts" }
   | { view: "new" }
   | { view: "detail"; farmId: Id<"farms"> }
   | { view: "join"; inviteCode: string }
@@ -100,9 +102,14 @@ type FarmAppProps =
   | { view: "leave"; farmId: Id<"farms"> }
 
 export function FarmApp(props: FarmAppProps) {
+  const bottomNavActive =
+    props.view === "home" || props.view === "farms" || props.view === "posts"
+      ? props.view
+      : null
+
   return (
     <main className="min-h-svh bg-background text-foreground">
-      <div className="mx-auto flex min-h-svh w-full max-w-[28rem] flex-col px-5 py-8 pb-[max(2rem,env(safe-area-inset-bottom))]">
+      <div className="mx-auto flex min-h-svh w-full max-w-[28rem] flex-col px-5 py-8 pb-[max(1rem,env(safe-area-inset-bottom))]">
         {props.view === "home" ? (
           <HomeScreen
             initialFarmId={props.initialFarmId}
@@ -111,6 +118,7 @@ export function FarmApp(props: FarmAppProps) {
         ) : null}
         {props.view === "settings" ? <SettingsScreen /> : null}
         {props.view === "farms" ? <MyFarmsScreen /> : null}
+        {props.view === "posts" ? <PostsScreen /> : null}
         {props.view === "new" ? <CreateFarmScreen /> : null}
         {props.view === "detail" ? (
           <FarmDetailScreen farmId={props.farmId} />
@@ -124,8 +132,73 @@ export function FarmApp(props: FarmAppProps) {
         {props.view === "leave" ? (
           <LeaveFarmScreen farmId={props.farmId} />
         ) : null}
+        {bottomNavActive ? <BottomNav active={bottomNavActive} /> : null}
       </div>
     </main>
+  )
+}
+
+function BottomNav({ active }: { active: "farms" | "home" | "posts" }) {
+  const items = [
+    {
+      key: "farms",
+      href: "/farms",
+      label: "My Farms",
+      icon: <UsersRound aria-hidden="true" />,
+    },
+    {
+      key: "home",
+      href: "/",
+      label: "Home",
+      icon: <Home aria-hidden="true" />,
+    },
+    {
+      key: "posts",
+      href: "/posts",
+      label: "Posts",
+      icon: <Send aria-hidden="true" />,
+    },
+  ] as const
+
+  return (
+    <nav
+      aria-label="Primary"
+      className="sticky bottom-0 z-10 mt-auto border-t border-border bg-background/95 pt-2 pb-[max(0.25rem,env(safe-area-inset-bottom))] backdrop-blur"
+    >
+      <div className="grid grid-cols-3 items-end gap-2">
+        {items.map((item) => {
+          const isActive = active === item.key
+          const isHome = item.key === "home"
+
+          return (
+            <NextLink
+              aria-current={isActive ? "page" : undefined}
+              className={cn(
+                "flex min-h-14 flex-col items-center justify-center gap-1 rounded-xl px-2 text-xs font-medium text-muted-foreground transition-colors",
+                isActive && "text-primary",
+                isHome &&
+                  "min-h-16 -translate-y-2 rounded-2xl border border-border bg-card shadow-sm",
+                isHome &&
+                  isActive &&
+                  "border-primary/20 bg-primary text-primary-foreground shadow-md"
+              )}
+              href={item.href}
+              key={item.key}
+            >
+              <span
+                className={cn(
+                  "flex size-6 items-center justify-center [&>svg]:size-5",
+                  isHome && "size-8 [&>svg]:size-6"
+                )}
+              >
+                {item.icon}
+              </span>
+              <span className="truncate">{item.label}</span>
+            </NextLink>
+          )
+        })}
+      </div>
+    </nav>
   )
 }
 
@@ -221,7 +294,7 @@ function HomeScreen({
   }
 
   return (
-    <div className="flex min-h-[calc(100svh-4rem)] flex-col gap-8">
+    <div className="flex flex-1 flex-col gap-8 pb-5">
       <header className="flex items-center justify-between pt-2">
         <NextLink
           className="inline-flex items-center gap-2 text-primary"
@@ -394,6 +467,99 @@ function RecentRequests({
         ))}
       </Card>
     </section>
+  )
+}
+
+function PostsScreen() {
+  const requests = useQuery(api.requests.listMine)
+
+  return (
+    <div className="flex flex-1 flex-col gap-8 pb-5">
+      <TopNav title="Posts" backHref="/" />
+      <section className="space-y-3">
+        <h1 className="text-3xl leading-tight font-semibold tracking-normal">
+          Posts
+        </h1>
+        <p className="text-base leading-7 text-muted-foreground">
+          Engagement requests, status, and history.
+        </p>
+      </section>
+      <PostHistoryList requests={requests} />
+    </div>
+  )
+}
+
+function PostHistoryList({
+  requests,
+}: {
+  requests:
+    | Array<{
+        id: Id<"engagementRequests">
+        farmName: string
+        postTitle: string
+        status: "active" | "completed" | "partial" | "failed" | "canceled"
+        likedCount: number
+        pendingCount: number
+        targetMemberCount: number
+        createdAt: number
+      }>
+    | undefined
+}) {
+  if (requests === undefined) {
+    return (
+      <Card>
+        <CardContent className="px-5 text-muted-foreground">
+          Loading posts...
+        </CardContent>
+      </Card>
+    )
+  }
+
+  if (requests.length === 0) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>No posts yet</CardTitle>
+          <CardDescription>
+            Request engagement on an X post to start tracking status here.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Button className="h-12 rounded-xl" asChild>
+            <NextLink href="/">Go to Home</NextLink>
+          </Button>
+        </CardContent>
+      </Card>
+    )
+  }
+
+  return (
+    <Card className="gap-0 py-0">
+      {requests.map((request) => (
+        <NextLink
+          className="flex min-h-20 items-center justify-between gap-3 border-b border-border px-4 py-3 last:border-b-0"
+          href={`/requests/${request.id}`}
+          key={request.id}
+        >
+          <span className="min-w-0">
+            <span className="block truncate text-base font-semibold">
+              {request.postTitle}
+            </span>
+            <span className="block truncate text-sm text-muted-foreground">
+              {request.farmName} · {request.likedCount} of{" "}
+              {request.targetMemberCount} likes
+            </span>
+          </span>
+          <span className="flex shrink-0 items-center gap-2">
+            <RequestSummaryBadge
+              pendingCount={request.pendingCount}
+              status={request.status}
+            />
+            <ChevronRight className="size-5 text-muted-foreground" />
+          </span>
+        </NextLink>
+      ))}
+    </Card>
   )
 }
 
@@ -649,7 +815,7 @@ function MyFarmsScreen() {
   const farms = useQuery(api.farms.listMine)
   const showBottomCreate = Boolean(farms && farms.length > 0)
   return (
-    <div className="flex min-h-[calc(100svh-4rem)] flex-col">
+    <div className="flex flex-1 flex-col pb-5">
       <TopNav title="My Farms" backHref="/" />
       <section className="mt-8 flex-1">
         <FarmList farms={farms} emptyAction />

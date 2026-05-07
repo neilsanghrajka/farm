@@ -33,6 +33,8 @@ asked my Farm to like this post?"
   - `Skipped`
   - `Failed`
 - The page supports historical requests after processing finishes.
+- A top-level `/posts` screen lists the viewer's request history across their
+  active Farms and links each row to request detail.
 - The page has a copyable status link.
 - The page has an `Ask again` action that navigates back to Home with the same
   post/Farm context when that Home prefill contract exists. It must not create a
@@ -46,7 +48,7 @@ asked my Farm to like this post?"
 ## Future Scope
 
 - Advanced Home request creation controls such as rich Farm filtering,
-  duplicate-request policy, and full request history.
+  duplicate-request policy, and request-history filtering.
 - Live X metadata validation before request creation.
 - Running X API like actions.
 - Retrying failed attempts automatically or manually.

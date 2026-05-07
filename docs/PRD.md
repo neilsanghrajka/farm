@@ -215,6 +215,13 @@ primary action to `Request`. Settings no longer shows a connected-status badge
 for X accounts. Farm detail now uses a smaller title, one-line member/admin
 metadata, and a compact share-link row.
 
+### 2026-05-07: Top-Level Mobile Navigation
+
+Added a persistent bottom nav for authenticated top-level app areas: `My Farms`,
+center-highlighted `Home`, and `Posts`. `Posts` is the request history/status
+surface and links rows back to request detail. Settings remains reachable from
+the Home header gear instead of becoming a bottom tab.
+
 ### 2026-05-07: Missing-X Home CTA
 
 Removed the separate missing-X setup card from Home. When X is missing,

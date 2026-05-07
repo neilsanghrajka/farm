@@ -14,7 +14,7 @@ Depends on:
 Define Farm's main authenticated Home screen: the place a user lands after app
 login, understands whether they are ready to use Farm, pastes an existing X post
 URL, chooses a Farm, requests engagement, checks recent request progress, and
-navigates to Farms, request status, and Settings.
+navigates to My Farms, Posts/history, request status, and Settings.
 
 This feature matters because Home is the product's working surface. The user
 should not feel like they are in onboarding or a dashboard. They should be able
@@ -53,6 +53,8 @@ Farm to like it through connected X accounts.
   the user to the existing request instead of creating a duplicate.
 - Show recent request summaries on Home and link each row to request status.
 - Show the user's Farms on Home and link each row to Farm detail.
+- Show persistent top-level bottom navigation for `My Farms`, `Home`, and
+  `Posts`, with Home emphasized as the primary center tab.
 - Handle empty, loading, validation, duplicate, and failure states in the Home
   surface.
 - Update the PRD with the Home/request-creation direction.
@@ -137,6 +139,8 @@ rows below.
 - Recent request: show the latest active or recent status and link to details.
 - My Farms: expose Farm navigation and creation path without turning Home into a
   management screen.
+- Bottom navigation: expose My Farms, Home, and Posts without replacing the
+  Home header Settings gear.
 
 ### Interaction Thesis
 
