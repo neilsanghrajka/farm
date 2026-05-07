@@ -108,8 +108,15 @@ export function FarmApp(props: FarmAppProps) {
       : null
 
   return (
-    <main className="min-h-svh bg-background text-foreground">
-      <div className="mx-auto flex h-svh w-full max-w-[28rem] flex-col overflow-y-auto px-5 pt-8 pb-[max(1rem,env(safe-area-inset-bottom))]">
+    <main className="min-h-svh overflow-x-hidden bg-background text-foreground">
+      <div
+        className={cn(
+          "mx-auto flex min-h-svh w-full max-w-[28rem] flex-col px-5 pt-8",
+          bottomNavActive
+            ? "pb-[calc(6rem+max(1rem,env(safe-area-inset-bottom)))]"
+            : "pb-[max(1rem,env(safe-area-inset-bottom))]"
+        )}
+      >
         {props.view === "home" ? (
           <HomeScreen
             initialFarmId={props.initialFarmId}
@@ -163,9 +170,9 @@ function BottomNav({ active }: { active: "farms" | "home" | "posts" }) {
   return (
     <nav
       aria-label="Primary"
-      className="sticky bottom-0 z-20 mt-auto border-t border-border bg-background/95 pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] backdrop-blur"
+      className="fixed inset-x-0 bottom-0 z-50 border-t border-border bg-background shadow-[0_-8px_24px_rgba(0,0,0,0.06)]"
     >
-      <div className="grid grid-cols-3 items-end gap-2">
+      <div className="mx-auto grid w-full max-w-[28rem] grid-cols-3 items-end gap-2 px-5 pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
         {items.map((item) => {
           const isActive = active === item.key
           return (
@@ -315,11 +322,8 @@ function HomeScreen({
 
       <form className="space-y-5" noValidate onSubmit={handleRequestSubmit}>
         <div>
-          <h1 className="inline-flex items-center gap-2 text-[2rem] leading-none font-semibold tracking-normal whitespace-nowrap">
-            <span>Request</span>
-            <span className="sr-only">X</span>
-            <XLogoMark className="size-7 text-foreground" />
-            <span>Engagement</span>
+          <h1 className="text-[clamp(1.65rem,7vw,2rem)] leading-tight font-semibold tracking-normal">
+            <span>Request Engagement</span>
           </h1>
         </div>
 
@@ -350,7 +354,7 @@ function HomeScreen({
             Farm
           </Label>
           <Select
-            disabled={!farms || farms.length === 0 || !xEligible}
+            disabled={!farms || farms.length === 0}
             onValueChange={(value) => {
               setChosenFarmId(value as Id<"farms">)
               setRequestError(null)
@@ -387,7 +391,7 @@ function HomeScreen({
         {requestError ? <ErrorText>{requestError}</ErrorText> : null}
 
         <Button
-          className="h-16 w-full rounded-xl text-lg font-semibold"
+          className="h-16 w-full gap-1.5 rounded-xl px-3 text-base leading-tight font-semibold whitespace-normal sm:text-lg"
           disabled={isRequesting || (!needsXLink && !canCreateRequest)}
           onClick={needsXLink ? handleLinkXAccount : undefined}
           type={needsXLink ? "button" : "submit"}
@@ -398,7 +402,7 @@ function HomeScreen({
               <span>Link</span>
               <span className="sr-only">X</span>
               <XLogoMark className="size-4 text-current" />
-              <span>account</span>
+              <span>Account to request engagement</span>
             </>
           ) : isRequesting ? (
             "Creating request..."
@@ -593,6 +597,7 @@ function TweetPreview({ postUrl }: {
         className="h-[18rem] w-full border-0 bg-transparent"
         loading="lazy"
         referrerPolicy="strict-origin-when-cross-origin"
+        scrolling="no"
         src={embed.src}
         title="X post preview"
       />
