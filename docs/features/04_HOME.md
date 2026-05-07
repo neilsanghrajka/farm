@@ -27,8 +27,8 @@ Farm to like it through connected X accounts.
   experience from `docs/mocks/ask-engagement.png`.
 - Treat `01_X_LOGIN` as completed before this work starts.
 - Treat `05_POST` as completed before this work starts.
-- Show the existing missing-X blocking state from `01_X_LOGIN` when the user
-  does not have an eligible linked X account.
+- Show the missing-X CTA state from `01_X_LOGIN` when the user does not have an
+  eligible linked X account.
 - Show the linked-ready Home request form when the user has an eligible linked X
   account.
 - Let the user paste an existing X post URL.
@@ -123,16 +123,17 @@ visual shape beyond these mocks, create and approve a dedicated
 
 ### Visual Thesis
 
-Home should feel like a native mobile command surface: large direct heading,
-one dominant URL paste action, a simple Farm selector, a confident green request
-button, and quiet status/navigation rows below.
+Home should feel like a native mobile command surface: direct single-line
+heading, one dominant URL paste action, a Farm selector with quiet account
+readiness undertext, a confident green request button, and status/navigation
+rows below.
 
 ### Content Plan
 
 - Header: brand plus Settings entry.
-- Request composer: paste URL, choose Farm, request likes.
-- Readiness strip: explain how many linked accounts are ready and that Farm uses
-  official X APIs only.
+- Request composer: paste URL, choose Farm, request engagement.
+- Farm selector: show the selected Farm name with linked-account readiness as
+  subtle undertext.
 - Recent request: show the latest active or recent status and link to details.
 - My Farms: expose Farm navigation and creation path without turning Home into a
   management screen.
@@ -159,17 +160,18 @@ button, and quiet status/navigation rows below.
   `text-destructive`, and `ring-ring`.
 - Keep font tokens in `@theme inline` as literal Geist stacks.
 - Compose only existing shadcn components. Current repo components include
-  `Button`, `Card`, `Input`, `Label`, `Badge`, `Avatar`, and `Separator`.
+  `Button`, `Card`, `Input`, `Label`, `Badge`, `Avatar`, `Separator`, `Dialog`,
+  and `Select`.
 - Use lucide icons for settings, link, Farm, account readiness, shield/check,
   request/document, chevrons, alerts, and loading/error affordances.
 - Prefer plain sections and rows over nested card stacks. Cards are acceptable
-  for the URL field, Farm selector, readiness strip, recent request row, and
-  Farm list rows because those are the interaction blocks shown in the mocks.
-- The missing-X prompt belongs above disabled request controls and routes to
-  Settings, as defined in `01_X_LOGIN`.
+  for the URL field, Farm selector, recent request row, and Farm list rows
+  because those are the interaction blocks shown in the mocks.
+- When X is missing, the main request CTA becomes `Link X account` with a
+  warning icon and routes to Settings, as defined in `01_X_LOGIN`.
 - In the linked-ready state, the readiness strip should show real eligible
   linked X accounts, not total Farm member count.
-- The request button copy is `Request likes`.
+- The request button copy is `Request`.
 - The recent request row copy should use live request data, not mock dates.
 
 ### Mobile Behavior
@@ -217,9 +219,9 @@ button, and quiet status/navigation rows below.
   - Convex guidance requires auth-derived user identity, validators, indexes
     over filters, bounded reads, and no sensitive public functions.
   - X docs confirm the relevant v2 shape: OAuth 2.0 Authorization Code with
-    PKCE supports fine-grained scopes such as `tweet.read`, `users.read`,
-    `like.write`, and `offline.access`; tweet lookup uses `GET /2/tweets/:id`;
-    likes use user-context `POST /2/users/:id/likes`.
+    PKCE supports fine-grained scopes; Farm intentionally requests only
+    `like.write offline.access` for user linking. Tweet lookup uses app-only
+    `GET /2/tweets/:id`; likes use user-context `POST /2/users/:id/likes`.
   - Existing WIP request files in this workspace indicate the expected tables
     are `engagementRequests` and `engagementAttempts`; implementation should
     coordinate with the WIP branch instead of re-creating divergent schema.
@@ -253,7 +255,7 @@ paste a public X post URL, choose a Farm, submit, and land on request status.
   2. User sees the linked-ready Home surface.
   3. User pastes an X post URL into `Paste X post URL`.
   4. User confirms or changes the selected Farm.
-  5. User taps `Request likes`.
+  5. User taps `Request`.
   6. System trims and validates the URL.
   7. System verifies the post through official X APIs.
   8. System checks whether this Farm already has a non-canceled request for the
@@ -282,10 +284,9 @@ paste a public X post URL, choose a Farm, submit, and land on request status.
 - User intent: understand why request creation is unavailable.
 - Steps:
   1. System loads linked X account state.
-  2. Home shows the missing-X setup prompt from `01_X_LOGIN`.
-  3. URL field, Farm selector, and request button are disabled or visually
-     blocked.
-  4. User taps `Go to Settings` or `Connect X account`.
+  2. Home disables the URL field and Farm selector.
+  3. The main request button becomes `Link X account` with a warning icon.
+  4. User taps `Link X account`.
   5. System routes to Settings.
 - System behavior:
   - Do not create engagement requests while X is missing, expired, revoked, or
@@ -471,21 +472,18 @@ paste a public X post URL, choose a Farm, submit, and land on request status.
 ### Copy Requirements
 
 - Brand: `Farm`
-- Page heading: `Ask for engagement`
-- Supporting copy: `Paste an X post URL, choose a Farm, and request likes from
-  your community.`
+- Page heading: `Request X Engagement`
+- Supporting copy: none.
 - URL placeholder: `Paste X post URL`
 - URL label: `X post URL`
 - Farm selector label: `Farm`
-- Primary action: `Request likes`
+- Primary action: `Request`
+- Missing-X primary action: `Link X account`
 - Loading action: `Creating request...`
-- Readiness copy: `{eligibleAccountCount} linked accounts ready`
-- Official API note: `Official X API only`
-- Missing-X setup label: `Setup`
-- Missing-X title: `Connect your X account`
-- Missing-X body: `Required before you can request likes from a Farm.`
-- Missing-X action: `Go to Settings` or `Connect X account`, matching
-  `01_X_LOGIN` implementation.
+- Farm selector undertext: `{eligibleAccountCount} linked accounts ready`
+- Do not show a separate readiness strip or `Official X API only` badge.
+- Do not show a separate missing-X setup card, `Setup` badge, missing-X body
+  copy, or secondary setup action.
 - No-Farms title: `No Farms yet`
 - No-Farms body: `Create your first Farm and share one join link.`
 - No-Farms action: `Create Farm`
@@ -868,11 +866,8 @@ Backend requirements:
   - X Likes endpoints:
     `https://docs.x.com/x-api/posts/likes/introduction`
 - Expected scopes from `01_X_LOGIN`:
-  - `tweet.read`
-  - `users.read`
   - `like.write`
-  - `offline.access` if Farm needs refresh tokens to process requests after the
-    initial session.
+  - `offline.access`
 - Expected post lookup:
   - `GET /2/tweets/:id`
   - Use fields/expansions only for display and processing needs.
@@ -1008,8 +1003,8 @@ Example:
    runtime.
 7. Add duplicate detection for selected Farm plus provider post id.
 8. Create request and attempt snapshot with denormalized counts.
-9. Add worker handoff to `06_AUTO_ENGAGE` without implementing like processing
-   in Home.
+9. Run the narrow official-X like pass owned by `06_AUTO_ENGAGE` after request
+   creation.
 10. Build the Home UI states against the approved mocks.
 11. Wire recent requests and My Farms navigation.
 12. Wire `Ask again` prefill.
@@ -1044,7 +1039,7 @@ The main agent owns final integration across the four ownership areas.
 ## Acceptance Criteria
 
 - [ ] Home uses the approved linked-ready mock direction from
-  `docs/mocks/ask-engagement.png`.
+      `docs/mocks/ask-engagement.png`.
 - [ ] Home uses the missing-X state defined by `docs/features/01_X_LOGIN.md`.
 - [ ] Home remains a narrow mobile-first app surface on desktop.
 - [ ] Home uses only existing shadcn components.
@@ -1064,15 +1059,15 @@ The main agent owns final integration across the four ownership areas.
 - [ ] Request creation verifies the target X post through official X APIs.
 - [ ] Request creation does not make browser-side X API calls.
 - [ ] Duplicate request submissions for the same Farm/post route to the existing
-  request instead of creating duplicate attempts.
+      request instead of creating duplicate attempts.
 - [ ] Request creation snapshots active Farm members.
 - [ ] Request creator is included when they are an active member of the selected
-  Farm.
+      Farm.
 - [ ] Members without eligible X accounts appear as skipped/no-X attempt rows.
-- [ ] Eligible members appear as pending attempt rows.
+- [ ] Eligible members appear as pending attempt rows before the like pass
+      settles them.
 - [ ] Denormalized request counts match the attempt snapshot.
-- [ ] Auto Engage handoff is queued or scheduled without implementing the worker
-  in Home.
+- [ ] Eligible pending attempts are handed to the official-X like pass.
 - [ ] Successful submission navigates to `/requests/[requestId]`.
 - [ ] `Ask again` pre-fills Home without creating a request.
 - [ ] Recent request rows link to request status and show live aggregate counts.
@@ -1082,7 +1077,7 @@ The main agent owns final integration across the four ownership areas.
 - [ ] No raw OAuth token material or raw X API payloads appear in the browser.
 - [ ] Mobile tap targets and keyboard accessibility are acceptable.
 - [ ] No unrelated Farm, Settings, X linking, request-status, or auto-engage
-  behavior is changed.
+      behavior is changed.
 
 ## Verification Plan
 
@@ -1127,7 +1122,7 @@ Check:
 Use the in-app Browser plugin to test:
 
 1. Login lands on Home.
-2. Missing X shows setup prompt and routes to Settings.
+2. Missing X changes the main CTA to `Link X account` and routes to Settings.
 3. Linked X plus no Farms disables request creation and routes to Farm creation.
 4. Linked X plus one Farm defaults the selector.
 5. Invalid URL shows inline error.

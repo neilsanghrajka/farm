@@ -19,8 +19,9 @@ using that linked state to gate engagement actions in the app.
 - Use the approved X linking mocks under `docs/mocks/01_X_LOGIN/` as the
   implementation reference.
 - After password login, land the user on Home.
-- If the user has not linked X, show a blocking setup prompt on Home.
-- The Home prompt sends the user to Settings.
+- If the user has not linked X, make the Home request CTA read
+  `Link X account`.
+- The Home `Link X account` CTA sends the user to Settings.
 - Settings shows the X account area and starts official X OAuth.
 - Store one or more linked external account records for the authenticated Farm
   user, starting with X.
@@ -71,21 +72,25 @@ using that linked state to gate engagement actions in the app.
 
 Key layout decisions:
 
-- Home still includes the `Ask for engagement` surface, but the missing-X
-  version leads with X setup.
+- Home still includes the `Request X Engagement` surface, but the missing-X
+  version uses the main request CTA for X setup.
 - Home keeps the Settings gear entry point from the existing mock.
 - If X is missing, the post URL field, Farm selector, and request button should
   communicate that setup is required before engagement can be requested.
-- The missing-X setup prompt should appear at the top of Home, before the
-  `Ask for engagement` controls, and should route to Settings.
+- Do not show a separate missing-X setup card on Home. The main request button
+  should become `Link X account`, include a warning icon, and route to Settings.
 - Home should not show badges such as `Official X API only`; keep the missing-X
   state clean and action-oriented.
 - Settings keeps the existing connected-account treatment and should support
   both unlinked and linked states in the same section.
 - The linked Settings state should show only the connected X account, handle,
-  connected status, and `Disconnect`; do not add secondary implementation cards,
+  and `Disconnect`; do not add secondary implementation cards or status badges,
   account-detail rows, endpoint verification, `Home is unblocked`, or a bottom
   `Back to Home` button.
+- Before sending the user to X, Settings shows a compact shadcn Dialog that
+  explains Farm asks only for like/unlike permission plus offline access, uses
+  it only for submitted post URLs, and does not request read, post, DM, follow,
+  bookmark, email, or password access.
 - Use the official black X mark treatment in the X account row.
 - Use shadcn/Tailwind tokens from `app/globals.css`; avoid one-off page colors
   for foundational surfaces.
@@ -96,7 +101,7 @@ Key layout decisions:
 Mobile behavior:
 
 - Mobile is the primary target.
-- The setup prompt must remain visible without hiding the main Home context.
+- The missing-X CTA must remain visible without hiding the main Home context.
 - Tap targets must stay comfortable.
 
 Desktop behavior:
@@ -134,9 +139,9 @@ Home recognizable as the app's main working surface.
   1. User sees the Home screen.
   2. System checks whether the authenticated Farm user has an active linked X
      account.
-  3. If X is missing, Home shows a setup prompt and disables engagement
-     request submission.
-  4. User taps the setup action.
+  3. If X is missing, Home disables the post/Farm controls and changes the main
+     request CTA to `Link X account`.
+  4. User taps `Link X account`.
   5. System routes the user to Settings.
   6. User starts official X OAuth.
   7. User authorizes Farm on X.
@@ -154,12 +159,12 @@ Home recognizable as the app's main working surface.
 - User intent: request engagement or inspect current app state.
 - Steps:
   1. System loads the user's linked account state.
-  2. Home does not show the blocking missing-X prompt.
+  2. Home does not show the missing-X `Link X account` CTA.
   3. Engagement actions are available subject to the user's Farms and request
      validation.
 - Success outcome: the user can continue to the normal Home workflow.
 - Failure outcome: if the token is expired or revoked, the account state changes
-  to needs reconnect and the blocking prompt returns.
+  to needs reconnect and Home returns to the `Link X account` CTA state.
 - Next destination: Home.
 
 ### Secondary User Journey: Disconnect X
@@ -211,16 +216,17 @@ Home recognizable as the app's main working surface.
   - X disconnecting.
   - X disconnect failed.
 - Copy requirements:
-  - Home setup prompt should be direct and operational, not onboarding-themed.
-  - Use `Connect X account` for the primary setup action.
+  - Home missing-X CTA should be direct and operational, not onboarding-themed.
+  - Use `Link` for the Settings action that starts the pre-X confirmation.
   - Use `Reconnect X account` when a previously linked account needs repair.
   - Use `Disconnect` in Settings for unlinking.
-  - Do not show implementation proof copy on the user-facing Settings screen,
-    including endpoint names, app IDs, or "official API" badges.
+  - The pre-X dialog may mention official X authorization and the exact limited
+    permission shape. Do not add persistent implementation proof copy on the
+    user-facing Settings screen, including endpoint names, app IDs, or badges.
 - Blocking behavior:
   - Request engagement submission is disabled until X is linked.
-  - Missing-X Home should prioritize the top X account setup block and disabled
-    request controls.
+  - Missing-X Home should prioritize the request form and use its main CTA for
+    X account setup.
   - Do not block basic navigation to Settings or Farm surfaces.
 - Accessibility basics:
   - Disabled controls need nearby explanatory text.
@@ -366,10 +372,9 @@ Backend requirements:
 
 - Farm app login stays in `docs/features/00_LOGIN.md`.
 - X OAuth is account linking for authenticated Farm users.
-- Use official X OAuth with the minimum scopes needed for reading relevant post
-  data and liking posts.
+- Use official X OAuth with only `like.write offline.access`.
 - The OAuth flow must not grant arbitrary posting, DM, password, or unrelated
-  account access.
+  account access, and must not request user-context read scopes for linking.
 - A user can unlink X without deleting their Farm account.
 
 ### X API
@@ -398,8 +403,11 @@ Known working developer setup from prior local verification:
   Developer Console, but set Convex `NEXT_PUBLIC_APP_URL` to the matching
   `localhost` app origin so the final redirect preserves the Convex Auth
   browser session cookie.
-- Scopes verified for the like flow:
-  `tweet.read users.read like.write offline.access`.
+- Scopes requested for the strict like-only flow:
+  `like.write offline.access`.
+- Previous X docs and local verification used `tweet.read users.read
+like.write offline.access`, but Farm now intentionally fails closed rather
+  than silently requesting user-context read scopes.
 
 Sensitive credential handling:
 
@@ -475,13 +483,16 @@ Known working OAuth flow:
 4. User authorizes the app as `@NeilSanghrajka`.
 5. X redirects to the callback with `code`.
 6. Exchange the code at `POST https://api.x.com/2/oauth2/token`.
-7. Call `GET https://api.x.com/2/users/me`.
-8. Store the returned X user ID and account metadata.
+7. Derive the X user id from the token response when X provides it, or reuse the
+   user's existing linked X account id during reconnect.
+8. Store the X account id and token material without calling user-context read
+   APIs.
 
 Known working API calls:
 
 - Token exchange: `POST https://api.x.com/2/oauth2/token`.
-- Authenticated user lookup: `GET https://api.x.com/2/users/me`.
+- Authenticated user lookup with `/2/users/me` is intentionally not used in the
+  strict like-only flow because it requires user read scope.
 - Like post:
   `POST https://api.x.com/2/users/1021261303/likes`.
 - Like body:
@@ -514,7 +525,8 @@ Operational guardrails:
 Implementation agents should verify:
 
 - OAuth method and PKCE/client-secret requirements for the chosen X app type.
-- Exact scopes needed for reading target post data and liking posts.
+- Whether X accepts likes with only `like.write offline.access`, or rejects the
+  request because its endpoint mapping expects additional scopes.
 - Whether refresh tokens are issued for the chosen OAuth configuration.
 - Rate-limit and error behavior for token validation and liking.
 
@@ -547,12 +559,11 @@ Implementation agents should verify:
   - `X_CLIENT_SECRET` is set only if using a confidential X client.
   - `X_TOKEN_ENCRYPTION_KEY` is set in the runtime handling OAuth.
   - `X_REDIRECT_URI` matches an allowed X Developer Console callback.
-  - `X_OAUTH_SCOPES` contains
-    `tweet.read users.read like.write offline.access`.
+  - `X_OAUTH_SCOPES` contains `like.write offline.access`.
 - Use the in-app browser for localhost verification:
   - Sign in.
   - Land on Home.
-  - Confirm missing-X prompt appears.
+  - Confirm Home shows `Link X account` instead of a separate missing-X prompt.
   - Navigate to Settings.
   - Start OAuth or verify the configured local callback behavior.
   - Confirm linked state appears after a successful callback.
@@ -563,7 +574,7 @@ Implementation agents should verify:
 - Production verification after push:
   - Open `https://spcfarm.vercel.app`.
   - Sign in.
-  - Confirm missing-X Home state.
+  - Confirm missing-X Home shows `Link X account`.
   - Start X OAuth from Settings.
   - Confirm OAuth returns to Farm.
   - Confirm linked X account appears without exposing token material.
@@ -572,10 +583,12 @@ Implementation agents should verify:
 ## Acceptance Criteria
 
 - After Farm login, the user lands on Home.
-- If the user has no active linked X account, Home shows a blocking prompt.
+- If the user has no active linked X account, Home shows `Link X account` as
+  the main CTA.
 - Missing-X Home state prevents request engagement submission.
-- The Home prompt routes the user to Settings.
+- The Home `Link X account` CTA routes the user to Settings.
 - Settings can start official X OAuth.
+- Settings shows the pre-X limited-access dialog before redirecting to X.
 - A successful OAuth callback creates or updates an X account entity.
 - Linked X state is visible in Settings.
 - Settings linked state contains only the connected X account summary and

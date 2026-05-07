@@ -102,10 +102,11 @@ The approved sheets cover this screen packet:
 4. `farm-detail-admin.png`
    - Based on the admin Farm detail state in
      `docs/mocks/03_FARM/farm-flow-main.png`.
-   - Header shows Farm name, privacy, member count, and `Admin`.
-   - Invite area is renamed from `Invite members` to `Share join link`.
+   - Header shows Farm name, member count, and `You are admin` in one compact
+     line; do not show a privacy label.
+   - Invite area is renamed from `Invite members` to `Share Join Link`.
    - No invite-member form.
-   - Shows copyable join URL and `Copy link`.
+   - Shows copyable join URL and inline `Copy` action.
    - Shows member list.
    - Admin-only destructive row: `Delete Farm`.
    - Hide `Remove members` for v1 unless product re-adds member removal.
@@ -174,8 +175,9 @@ and no marketing chrome.
   `text-destructive`, and `ring-ring`.
 - The Farm icon tile from `docs/mocks/03_FARM/farm-flow-main.png` remains the
   reference for Farm detail.
-- The invite area becomes `Share join link` and does not branch into a separate
-  invite-member flow.
+- The invite area becomes `Share Join Link` and does not branch into a separate
+  invite-member flow. Keep the copy action in the same compact row as the
+  join URL.
 - Admin and member views use the same detail layout. Admin-only actions appear
   as additional rows near the bottom.
 - Destructive actions use the `text-destructive` token plus a confirmation
@@ -221,7 +223,7 @@ join, easy to revisit, and simple to manage with minimal admin-only controls.
   - The creator is the only admin in v1.
   - The join URL is reusable by anyone who has it.
   - No X/Twitter linked-account check runs in this flow.
-- Success outcome: the admin sees Farm detail with `Share join link`.
+- Success outcome: the admin sees Farm detail with `Share Join Link`.
 - Failure outcome: inline error appears and the form remains editable.
 - Next destination: Farm detail admin screen.
 
@@ -233,7 +235,7 @@ join, easy to revisit, and simple to manage with minimal admin-only controls.
   1. System resolves the invite code.
   2. If the user is signed out, system preserves invite context and shows login.
   3. After authentication, system returns to the join confirmation screen.
-  4. User reviews Farm name, privacy, member count, and inviter/admin context.
+  4. User reviews Farm name, member count, and inviter/admin context.
   5. User taps `Join Farm`.
   6. System creates the user's membership if eligible.
   7. System routes to Farm detail.
@@ -285,8 +287,8 @@ join, easy to revisit, and simple to manage with minimal admin-only controls.
 - Entry point: admin opens Farm detail.
 - User intent: invite people by sharing one URL.
 - Steps:
-  1. Admin sees `Share join link`.
-  2. Admin taps `Copy link`.
+  1. Admin sees `Share Join Link`.
+  2. Admin taps `Copy`.
   3. System writes the URL to the clipboard.
   4. Button briefly changes to `Copied`.
 - System behavior:
@@ -406,9 +408,9 @@ join, easy to revisit, and simple to manage with minimal admin-only controls.
 - Create title: `Create Farm`
 - Field label: `Farm name`
 - Create primary action: `Create Farm`
-- Detail invite heading: `Share join link`
-- Detail invite helper: `Anyone with this link can join this Farm.`
-- Copy action: `Copy link`
+- Detail invite heading: `Share Join Link`
+- Detail invite helper: none.
+- Copy action: `Copy`
 - Copied action state: `Copied`
 - Join title: `Join this Farm?`
 - Join primary action: `Join Farm`
@@ -699,7 +701,7 @@ Backend requirements:
 - Tapping `Join Farm` adds the authenticated user as a member.
 - Already-member users opening the join link land on Farm detail instead of
   creating duplicate memberships.
-- Farm detail shows Farm name, privacy, member count, current user's role, and
+- Farm detail shows Farm name, compact member count/current-role metadata, and
   member list.
 - Admin users see admin-only delete controls.
 - Non-admin members do not see admin-only delete controls.

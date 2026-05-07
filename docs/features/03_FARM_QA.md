@@ -57,10 +57,10 @@ Dia was not used. Dia should remain reserved for external admin dashboards only.
 - Confirm creator is admin.
 - Confirm member count is `1 member`.
 - Confirm member list shows the admin.
-- Confirm `Share join link` appears.
+- Confirm `Share Join Link` appears.
 - Confirm `Invite members` does not appear.
 - Confirm `Delete Farm` appears for admin.
-- Click `Copy link`.
+- Click `Copy`.
 - Confirm visible `Copied` feedback.
 
 ### Admin Navigation
@@ -80,8 +80,7 @@ Dia was not used. Dia should remain reserved for external admin dashboards only.
 
 - Sign up a fresh member on the join URL.
 - Confirm join confirmation appears.
-- Confirm Farm name, private label, member count, creator, and current user are
-  visible.
+- Confirm Farm name, member count, creator, and current user are visible.
 - Click `Not now`.
 - Confirm member remains out of the Farm.
 - Reopen the join URL.
@@ -90,7 +89,7 @@ Dia was not used. Dia should remain reserved for external admin dashboards only.
 - Confirm member role is `member`.
 - Confirm member count is `2 members`.
 - Confirm both admin and member rows render.
-- Confirm member does not see `Share join link`.
+- Confirm member does not see `Share Join Link`.
 - Confirm member does not see `Delete Farm`.
 - Confirm member sees `Leave Farm`.
 
@@ -155,7 +154,8 @@ Passed:
 - Farm list empty state.
 - Blank Farm name validation.
 - Farm creation.
-- Admin Farm detail, admin badge, member count, member list, delete control.
+- Admin Farm detail, compact admin metadata, member count, member list, delete
+  control.
 - No `Invite members` UI.
 - Copy-link visible feedback.
 - Home and My Farms list navigation.

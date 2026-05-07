@@ -76,16 +76,20 @@ Acceptance criteria:
 
 ### 2. X Account Linking
 
-A user lands on Home after Farm login. If they have not linked X, Home shows a blocking setup prompt and sends them to Settings to connect their X account through official X OAuth. Farm asks only for the minimum scopes needed to read the target post and like posts on the user's behalf. The user can later disconnect the X account.
+A user lands on Home after Farm login. If they have not linked X, Home changes
+the primary request action to `Link X account` and sends them to Settings to
+connect their X account through official X OAuth. Farm asks only for X
+like/unlike permission plus offline access so the user does not need to
+reconnect every session. The user can later disconnect the X account.
 
 Detailed spec: `docs/features/01_X_LOGIN.md`
 
 Acceptance criteria:
 
-- Home shows a clear setup prompt when the user has not linked X.
+- Home shows a clear `Link X account` action when the user has not linked X.
 - Engagement-request actions are disabled until the user has an eligible linked X account.
 - A user can start official X OAuth from Settings.
-- Farm explains that the requested access is limited to reading relevant X post data and liking posts.
+- Farm explains before redirecting to X that requested access is limited to liking/unliking submitted X post URLs and staying connected.
 - A linked X account appears in Settings and unblocks Home.
 - A user can disconnect their X account.
 - Farm does not request broad posting, DM, password, or unrelated account access.
@@ -202,6 +206,36 @@ Acceptance criteria:
 
 ## Amendments
 
+### 2026-05-07: Mobile UX Tightening
+
+Tightened the Home, Settings, and Farm detail surfaces based on browser review:
+Home now uses `Request X Engagement`, removes supporting copy and separate API
+badges, folds linked-account readiness into the Farm selector, and shortens the
+primary action to `Request`. Settings no longer shows a connected-status badge
+for X accounts. Farm detail now uses a smaller title, one-line member/admin
+metadata, and a compact share-link row.
+
+### 2026-05-07: Missing-X Home CTA
+
+Removed the separate missing-X setup card from Home. When X is missing,
+expired, revoked, or otherwise not eligible, the main request CTA becomes
+`Link X account` with a warning icon and routes to Settings.
+
+### 2026-05-07: Strict X Like-Only Linking
+
+Changed X linking to request only `like.write offline.access`. Farm no longer
+requests user-context X read scopes for account linking; app-only post
+validation remains separate from user authorization. If X rejects liking under
+the stricter scope set, Farm should fail closed and report the permission
+blocker rather than silently broadening scopes.
+
+### 2026-05-07: Minimal Official X Like Processing
+
+Added a narrow synchronous like pass after Home request creation. Eligible
+pending attempts call the official X like endpoint using linked account tokens,
+then record liked, retryable failure, or final failure outcomes in the existing
+request-status tables.
+
 ### 2026-05-07: Grand Unification Pending-Only Auto Engage
 
 Unified the X linking, Farm, Home request creation, and request-status work into
@@ -224,8 +258,7 @@ implementation slice once the WIP branches land.
 Expanded the request-status implementation scope to include the narrow Home
 request creation path required for an end-to-end flow: X post URL input, Farm
 selection, request record creation, pending member-attempt snapshot, and recent
-request links. Automatic X likes and broader Home history/filter behavior remain
-separate.
+request links. Broader Home history/filter behavior remains separate.
 
 ### 2026-05-06: Request Status Spec
 
