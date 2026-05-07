@@ -313,20 +313,22 @@ function HomeScreen({
             Farm
           </span>
         </NextLink>
-        <Button
-          asChild
-          className="size-11 rounded-xl border-border bg-card shadow-sm"
-          size="icon-lg"
-          variant="outline"
-        >
-          <NextLink href="/settings" aria-label="Settings">
-            <Settings className="size-7" aria-hidden="true" />
-          </NextLink>
-        </Button>
+        <div className="flex items-center gap-2">
+          <FarmSafetyDialog variant="icon" />
+          <Button
+            asChild
+            className="size-11 rounded-xl border-border bg-card shadow-sm"
+            size="icon-lg"
+            variant="outline"
+          >
+            <NextLink href="/settings" aria-label="Settings">
+              <Settings className="size-7" aria-hidden="true" />
+            </NextLink>
+          </Button>
+        </div>
       </header>
 
       <InstallPrompt />
-      <FarmSafetyDialog variant="outline" />
 
       <form className="space-y-5" noValidate onSubmit={handleRequestSubmit}>
         <div>

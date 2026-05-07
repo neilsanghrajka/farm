@@ -64,23 +64,32 @@ export function FarmSafetyDialog({
   variant = "link",
 }: {
   className?: string
-  variant?: "link" | "outline"
+  variant?: "icon" | "link" | "outline"
 }) {
+  const isIcon = variant === "icon"
+
   return (
     <Dialog>
       <DialogTrigger asChild>
         <Button
+          aria-label={isIcon ? "Is Farm safe to use?" : undefined}
           className={cn(
-            variant === "link"
+            isIcon
+              ? "size-11 rounded-xl border-border bg-card shadow-sm"
+              : variant === "link"
               ? "h-auto px-0 text-base font-medium"
               : "h-12 w-full rounded-xl text-base",
             className
           )}
           type="button"
-          variant={variant}
+          variant={isIcon ? "outline" : variant}
+          size={isIcon ? "icon-lg" : undefined}
         >
-          <ShieldCheck className="size-4" aria-hidden="true" />
-          Is Farm safe to use?
+          <ShieldCheck
+            className={cn(isIcon ? "size-6" : "size-4")}
+            aria-hidden="true"
+          />
+          {isIcon ? null : "Is Farm safe to use?"}
         </Button>
       </DialogTrigger>
       <DialogContent className="max-h-[calc(100svh-2rem)] max-w-[min(calc(100vw-2rem),26rem)] overflow-y-auto p-2">
