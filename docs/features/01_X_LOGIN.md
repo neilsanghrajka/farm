@@ -88,10 +88,10 @@ Key layout decisions:
   account-detail rows, endpoint verification, `Home is unblocked`, or a bottom
   `Back to Home` button.
 - Before sending the user to X, Settings shows a compact shadcn Dialog that
-  explains Farm asks for account identification, like/unlike permission, and
-  offline access. Account identification is used only to get the numeric X user
-  ID required by X's like endpoint. Farm does not request post, DM, follow,
-  bookmark, email, or password access.
+  explains X requires read scopes for the user-context like flow, Farm uses
+  them only to identify the linked X account and like/unlike submitted post
+  URLs, and Farm does not request DM, follow, bookmark, email, password, or
+  arbitrary posting access.
 - Use the official black X mark treatment in the X account row.
 - Use shadcn/Tailwind tokens from `app/globals.css`; avoid one-off page colors
   for foundational surfaces.
@@ -373,11 +373,13 @@ Backend requirements:
 
 - Farm app login stays in `docs/features/00_LOGIN.md`.
 - X OAuth is account linking for authenticated Farm users.
-- Use official X OAuth with `tweet.read users.read like.write offline.access`.
-- The OAuth flow must not grant arbitrary posting, DM, password, follow,
-  bookmark, email, or unrelated account access. X requires `tweet.read` and
-  `users.read` for user-context identity and like endpoints; Farm uses them
-  only to identify the linked account and like or unlike submitted post URLs.
+- Use official X OAuth with
+  `tweet.read users.read like.write offline.access`.
+- X requires `tweet.read` and `users.read` for the user-context like flow and
+  account id resolution. Farm uses those read scopes only to identify the linked
+  X account and like or unlike submitted post URLs.
+- The OAuth flow must not grant arbitrary posting, DM, follow, bookmark, email,
+  password, or unrelated account access.
 - A user can unlink X without deleting their Farm account.
 
 ### X API
@@ -406,15 +408,8 @@ Known working developer setup from prior local verification:
   Developer Console, but set Convex `NEXT_PUBLIC_APP_URL` to the matching
   `localhost` app origin so the final redirect preserves the Convex Auth
   browser session cookie.
-- Scopes requested for the minimal working like flow:
+- Scopes requested for the minimum official X like flow:
   `tweet.read users.read like.write offline.access`.
-- Live local verification with `like.write offline.access` reached the official
-  X consent page but failed the callback because X did not return an account id
-  and the OAuth 2.0 access token had no numeric user-id part. Farm therefore
-- Live local verification with `like.write users.read offline.access` reached
-  the official X consent page, but `/2/users/me` returned 403. X's official v2
-  authentication mapping requires `tweet.read users.read` for `/2/users/me` and
-  `tweet.read users.read like.write` for the likes endpoint.
 
 Sensitive credential handling:
 
@@ -490,16 +485,15 @@ Known working OAuth flow:
 4. User authorizes the app as `@NeilSanghrajka`.
 5. X redirects to the callback with `code`.
 6. Exchange the code at `POST https://api.x.com/2/oauth2/token`.
-7. Derive the X user id from the token response when X provides it, or reuse the
-   user's existing linked X account id during reconnect.
-8. Store the X account id and token material without calling user-context read
-   APIs.
+7. Resolve the authenticated X user id with `/2/users/me`; X requires
+   `tweet.read users.read` for that user-context identity call.
+8. Store the X account id and token material.
 
 Known working API calls:
 
 - Token exchange: `POST https://api.x.com/2/oauth2/token`.
-- Authenticated user lookup with `/2/users/me` is intentionally not used in the
-  strict like-only flow because it requires user read scope.
+- Authenticated user lookup uses `GET /2/users/me`; Farm uses it only to
+  resolve the linked account id required by X's like endpoint.
 - Like post:
   `POST https://api.x.com/2/users/1021261303/likes`.
 - Like body:
@@ -532,8 +526,8 @@ Operational guardrails:
 Implementation agents should verify:
 
 - OAuth method and PKCE/client-secret requirements for the chosen X app type.
-- Whether X continues to require `/2/users/me` account identification for OAuth
-  2.0 tokens that do not expose a numeric user-id part.
+- Confirm the configured scopes remain
+  `tweet.read users.read like.write offline.access`.
 - Whether refresh tokens are issued for the chosen OAuth configuration.
 - Rate-limit and error behavior for token validation and liking.
 
@@ -566,7 +560,8 @@ Implementation agents should verify:
   - `X_CLIENT_SECRET` is set only if using a confidential X client.
   - `X_TOKEN_ENCRYPTION_KEY` is set in the runtime handling OAuth.
   - `X_REDIRECT_URI` matches an allowed X Developer Console callback.
-  - `X_OAUTH_SCOPES` contains `tweet.read users.read like.write offline.access`.
+  - `X_OAUTH_SCOPES` contains
+    `tweet.read users.read like.write offline.access`.
 - Use the in-app browser for localhost verification:
   - Sign in.
   - Land on Home.
