@@ -109,7 +109,7 @@ export function FarmApp(props: FarmAppProps) {
 
   return (
     <main className="min-h-svh bg-background text-foreground">
-      <div className="mx-auto flex min-h-svh w-full max-w-[28rem] flex-col px-5 py-8 pb-[max(1rem,env(safe-area-inset-bottom))]">
+      <div className="mx-auto flex h-svh w-full max-w-[28rem] flex-col overflow-y-auto px-5 pt-8 pb-[max(1rem,env(safe-area-inset-bottom))]">
         {props.view === "home" ? (
           <HomeScreen
             initialFarmId={props.initialFarmId}
@@ -163,38 +163,31 @@ function BottomNav({ active }: { active: "farms" | "home" | "posts" }) {
   return (
     <nav
       aria-label="Primary"
-      className="sticky bottom-0 z-10 mt-auto border-t border-border bg-background/95 pt-2 pb-[max(0.25rem,env(safe-area-inset-bottom))] backdrop-blur"
+      className="sticky bottom-0 z-20 mt-auto border-t border-border bg-background/95 pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] backdrop-blur"
     >
       <div className="grid grid-cols-3 items-end gap-2">
         {items.map((item) => {
           const isActive = active === item.key
-          const isHome = item.key === "home"
-
           return (
-            <NextLink
-              aria-current={isActive ? "page" : undefined}
+            <Button
+              asChild
               className={cn(
-                "flex min-h-14 flex-col items-center justify-center gap-1 rounded-xl px-2 text-xs font-medium text-muted-foreground transition-colors",
-                isActive && "text-primary",
-                isHome &&
-                  "min-h-16 -translate-y-2 rounded-2xl border border-border bg-card shadow-sm",
-                isHome &&
-                  isActive &&
-                  "border-primary/20 bg-primary text-primary-foreground shadow-md"
+                "h-14 w-full flex-col gap-1 rounded-xl px-2 text-xs",
+                !isActive && "text-muted-foreground"
               )}
-              href={item.href}
               key={item.key}
+              variant={isActive ? "default" : "ghost"}
             >
-              <span
-                className={cn(
-                  "flex size-6 items-center justify-center [&>svg]:size-5",
-                  isHome && "size-8 [&>svg]:size-6"
-                )}
+              <NextLink
+                aria-current={isActive ? "page" : undefined}
+                href={item.href}
               >
-                {item.icon}
-              </span>
-              <span className="truncate">{item.label}</span>
-            </NextLink>
+                <span className="flex size-6 items-center justify-center [&>svg]:size-5">
+                  {item.icon}
+                </span>
+                <span className="truncate">{item.label}</span>
+              </NextLink>
+            </Button>
           )
         })}
       </div>
@@ -306,17 +299,27 @@ function HomeScreen({
             Farm
           </span>
         </NextLink>
-        <IconLink href="/settings" label="Settings">
-          <Settings className="size-8" aria-hidden="true" />
-        </IconLink>
+        <Button
+          asChild
+          className="size-11 rounded-xl border-border bg-card shadow-sm"
+          size="icon-lg"
+          variant="outline"
+        >
+          <NextLink href="/settings" aria-label="Settings">
+            <Settings className="size-7" aria-hidden="true" />
+          </NextLink>
+        </Button>
       </header>
 
       <InstallPrompt />
 
       <form className="space-y-5" noValidate onSubmit={handleRequestSubmit}>
         <div>
-          <h1 className="text-[2rem] leading-none font-semibold tracking-normal whitespace-nowrap">
-            Request X Engagement
+          <h1 className="inline-flex items-center gap-2 text-[2rem] leading-none font-semibold tracking-normal whitespace-nowrap">
+            <span>Request</span>
+            <span className="sr-only">X</span>
+            <XLogoMark className="size-7 text-foreground" />
+            <span>Engagement</span>
           </h1>
         </div>
 
@@ -325,10 +328,9 @@ function HomeScreen({
             X post URL
           </Label>
           <LinkIcon className="size-6 shrink-0" aria-hidden="true" />
-          <input
+          <Input
             aria-invalid={Boolean(requestError)}
-            className="min-w-0 flex-1 bg-transparent text-lg text-foreground outline-none placeholder:text-muted-foreground"
-            disabled={!xEligible}
+            className="h-auto min-w-0 flex-1 border-0 bg-transparent p-0 text-lg shadow-none focus-visible:ring-0"
             id={postUrlId}
             inputMode="url"
             onChange={(event) => {
@@ -340,6 +342,8 @@ function HomeScreen({
             value={postUrl}
           />
         </div>
+
+        <TweetPreview postUrl={postUrl} />
 
         <div>
           <Label className="sr-only" htmlFor={farmId}>
@@ -391,7 +395,10 @@ function HomeScreen({
           {needsXLink ? (
             <>
               <TriangleAlert className="size-5" aria-hidden="true" />
-              Link X account
+              <span>Link</span>
+              <span className="sr-only">X</span>
+              <XLogoMark className="size-4 text-current" />
+              <span>account</span>
             </>
           ) : isRequesting ? (
             "Creating request..."
@@ -424,6 +431,7 @@ function RecentRequests({
         id: Id<"engagementRequests">
         farmName: string
         postTitle: string
+        postUrl: string
         status: "active" | "completed" | "partial" | "failed" | "canceled"
         likedCount: number
         pendingCount: number
@@ -476,14 +484,9 @@ function PostsScreen() {
   return (
     <div className="flex flex-1 flex-col gap-8 pb-5">
       <TopNav title="Posts" backHref="/" />
-      <section className="space-y-3">
-        <h1 className="text-3xl leading-tight font-semibold tracking-normal">
-          Posts
-        </h1>
-        <p className="text-base leading-7 text-muted-foreground">
-          Engagement requests, status, and history.
-        </p>
-      </section>
+      <p className="text-base leading-7 text-muted-foreground">
+        Engagement requests, status, and history.
+      </p>
       <PostHistoryList requests={requests} />
     </div>
   )
@@ -497,6 +500,7 @@ function PostHistoryList({
         id: Id<"engagementRequests">
         farmName: string
         postTitle: string
+        postUrl: string
         status: "active" | "completed" | "partial" | "failed" | "canceled"
         likedCount: number
         pendingCount: number
@@ -524,43 +528,102 @@ function PostHistoryList({
             Request engagement on an X post to start tracking status here.
           </CardDescription>
         </CardHeader>
-        <CardContent>
-          <Button className="h-12 rounded-xl" asChild>
-            <NextLink href="/">Go to Home</NextLink>
-          </Button>
-        </CardContent>
       </Card>
     )
   }
 
   return (
-    <Card className="gap-0 py-0">
+    <div className="space-y-4">
       {requests.map((request) => (
-        <NextLink
-          className="flex min-h-20 items-center justify-between gap-3 border-b border-border px-4 py-3 last:border-b-0"
-          href={`/requests/${request.id}`}
-          key={request.id}
-        >
-          <span className="min-w-0">
-            <span className="block truncate text-base font-semibold">
-              {request.postTitle}
-            </span>
-            <span className="block truncate text-sm text-muted-foreground">
-              {request.farmName} · {request.likedCount} of{" "}
-              {request.targetMemberCount} likes
-            </span>
-          </span>
-          <span className="flex shrink-0 items-center gap-2">
-            <RequestSummaryBadge
-              pendingCount={request.pendingCount}
-              status={request.status}
-            />
-            <ChevronRight className="size-5 text-muted-foreground" />
-          </span>
-        </NextLink>
+        <Card className="gap-4 py-4" key={request.id}>
+          <CardHeader className="gap-3">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <CardTitle className="truncate">{request.postTitle}</CardTitle>
+                <CardDescription className="truncate">
+                  {request.farmName}
+                </CardDescription>
+              </div>
+              <RequestSummaryBadge
+                pendingCount={request.pendingCount}
+                status={request.status}
+              />
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <TweetPreview compact postUrl={request.postUrl} />
+            <div className="grid grid-cols-3 gap-2 text-center">
+              <RequestMetric label="Likes" value={request.likedCount} />
+              <RequestMetric label="Members" value={request.targetMemberCount} />
+              <RequestMetric label="Pending" value={request.pendingCount} />
+            </div>
+            <Button className="h-11 w-full rounded-xl" variant="outline" asChild>
+              <NextLink href={`/requests/${request.id}`}>
+                View status
+                <ChevronRight className="size-4" aria-hidden="true" />
+              </NextLink>
+            </Button>
+          </CardContent>
+        </Card>
       ))}
-    </Card>
+    </div>
   )
+}
+
+function RequestMetric({ label, value }: { label: string; value: number }) {
+  return (
+    <div className="rounded-lg border border-border bg-muted/30 px-2 py-2">
+      <div className="text-lg font-semibold leading-none">{value}</div>
+      <div className="mt-1 truncate text-xs text-muted-foreground">{label}</div>
+    </div>
+  )
+}
+
+function TweetPreview({ postUrl }: {
+  compact?: boolean
+  postUrl: string
+}) {
+  const embed = useMemo(() => getTweetEmbed(postUrl), [postUrl])
+
+  if (!embed) return null
+
+  return (
+    <div className="h-[14rem] overflow-hidden rounded-xl" key={embed.id}>
+      <iframe
+        className="h-[18rem] w-full border-0 bg-transparent"
+        loading="lazy"
+        referrerPolicy="strict-origin-when-cross-origin"
+        src={embed.src}
+        title="X post preview"
+      />
+      <a className="sr-only" href={embed.url}>
+        View this post on X
+      </a>
+    </div>
+  )
+}
+
+function getTweetEmbed(value: string) {
+  const trimmed = value.trim()
+  if (!trimmed) return null
+
+  try {
+    const url = new URL(trimmed)
+    const host = url.hostname.toLowerCase().replace(/^www\./, "")
+    if (host !== "x.com" && host !== "twitter.com") return null
+
+    const match = url.pathname.match(/^\/([^/]+)\/status(?:es)?\/(\d+)/)
+    if (!match) return null
+
+    const id = match[2]
+    return {
+      id,
+      src: `https://platform.twitter.com/embed/Tweet.html?dnt=true&id=${id}&lang=en&theme=light`,
+      url: `https://twitter.com/${match[1]}/status/${id}`,
+    }
+  } catch {
+    return null
+  }
 }
 
 function linkedAccountLabel(count: number) {

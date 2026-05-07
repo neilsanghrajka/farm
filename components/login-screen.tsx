@@ -155,6 +155,14 @@ export function LoginScreen({ children }: { children?: ReactNode }) {
   }
 
   if (isAuthenticated) {
+    if (viewer === undefined) {
+      return (
+        <main className="flex min-h-svh items-center justify-center bg-background px-6 py-8 text-foreground">
+          <p className="text-sm text-muted-foreground">Loading Farm...</p>
+        </main>
+      )
+    }
+
     if (viewer?.profile && children) {
       return <>{children}</>
     }

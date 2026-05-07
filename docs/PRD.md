@@ -206,6 +206,13 @@ Acceptance criteria:
 
 ## Amendments
 
+### 2026-05-07: Embedded X Post Previews
+
+Home previews a pasted public X post URL with the standard X HTML embed before
+request submission. Posts history cards also include the embedded post alongside
+Farm engagement stats. These previews use X's client-side embed script only and
+do not add extra X API calls.
+
 ### 2026-05-07: Mobile UX Tightening
 
 Tightened the Home, Settings, and Farm detail surfaces based on browser review:
