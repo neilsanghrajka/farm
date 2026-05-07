@@ -391,7 +391,7 @@ function HomeScreen({
         {requestError ? <ErrorText>{requestError}</ErrorText> : null}
 
         <Button
-          className="h-16 w-full gap-1.5 rounded-xl px-2 text-[0.94rem] leading-tight font-semibold whitespace-nowrap sm:text-base"
+          className="h-16 w-full gap-1.5 rounded-xl px-2 text-sm leading-tight font-semibold whitespace-nowrap sm:text-base"
           disabled={isRequesting || (!needsXLink && !canCreateRequest)}
           onClick={needsXLink ? handleLinkXAccount : undefined}
           type={needsXLink ? "button" : "submit"}
@@ -1022,7 +1022,9 @@ function CreateFarmScreen() {
 
 function FarmDetailScreen({ farmId }: { farmId: Id<"farms"> }) {
   const detail = useQuery(api.farms.get, { farmId })
-  const [copied, setCopied] = useState(false)
+  const [copyStatus, setCopyStatus] = useState<"idle" | "copied" | "failed">(
+    "idle"
+  )
   const joinUrl = useMemo(() => {
     if (detail?.status !== "ok" || !detail.farm.inviteCode) return null
     return `${window.location.origin}/join/${detail.farm.inviteCode}`
@@ -1030,9 +1032,13 @@ function FarmDetailScreen({ farmId }: { farmId: Id<"farms"> }) {
 
   async function copyLink() {
     if (!joinUrl) return
-    await navigator.clipboard.writeText(joinUrl)
-    setCopied(true)
-    window.setTimeout(() => setCopied(false), 1500)
+    try {
+      await copyTextToClipboard(joinUrl)
+      setCopyStatus("copied")
+    } catch {
+      setCopyStatus("failed")
+    }
+    window.setTimeout(() => setCopyStatus("idle"), 1500)
   }
 
   if (detail === undefined) return <LoadingScreen title="SPC Founders" />
@@ -1046,6 +1052,12 @@ function FarmDetailScreen({ farmId }: { farmId: Id<"farms"> }) {
         memberCount={detail.farm.memberCount}
         role={detail.farm.role}
       />
+      <Button className="h-14 w-full rounded-xl text-base" asChild>
+        <NextLink href={`/?farmId=${encodeURIComponent(farmId)}`}>
+          <Sparkles className="size-5" />
+          Request engagement
+        </NextLink>
+      </Button>
       {detail.farm.role === "admin" && joinUrl ? (
         <section className="space-y-3">
           <h2 className="text-xl font-semibold">Share Join Link</h2>
@@ -1060,7 +1072,11 @@ function FarmDetailScreen({ farmId }: { farmId: Id<"farms"> }) {
                 variant="ghost"
               >
                 <Copy className="size-4" />
-                {copied ? "Copied" : "Copy"}
+                {copyStatus === "copied"
+                  ? "Copied"
+                  : copyStatus === "failed"
+                    ? "Copy failed"
+                    : "Copy"}
               </Button>
             </CardContent>
           </Card>
@@ -1076,14 +1092,37 @@ function FarmDetailScreen({ farmId }: { farmId: Id<"farms"> }) {
           Leave Farm
         </DestructiveLink>
       )}
-      <Button className="h-14 w-full rounded-xl text-base" asChild>
-        <NextLink href={`/?farmId=${encodeURIComponent(farmId)}`}>
-          <Sparkles className="size-5" />
-          Request engagement
-        </NextLink>
-      </Button>
     </div>
   )
+}
+
+async function copyTextToClipboard(text: string) {
+  if (navigator.clipboard && window.isSecureContext) {
+    try {
+      await navigator.clipboard.writeText(text)
+      return
+    } catch {
+      // Fall through to the selection-based copy path.
+    }
+  }
+
+  const textarea = document.createElement("textarea")
+  textarea.value = text
+  textarea.setAttribute("readonly", "")
+  textarea.style.position = "fixed"
+  textarea.style.left = "-9999px"
+  textarea.style.top = "0"
+  document.body.appendChild(textarea)
+  textarea.focus()
+  textarea.select()
+
+  try {
+    if (!document.execCommand("copy")) {
+      throw new Error("Copy command failed")
+    }
+  } finally {
+    document.body.removeChild(textarea)
+  }
 }
 
 function JoinFarmScreen({ inviteCode }: { inviteCode: string }) {
