@@ -212,12 +212,6 @@ function RequestStatusContent({
                 {request.failedCount} failed
               </Badge>
             ) : null}
-            {request.status === "active" && !postState.stopped ? (
-              <Badge className="h-8 gap-2 bg-background px-4 text-base text-foreground ring-1 ring-border">
-                <Clock className="size-4" aria-hidden="true" />
-                6h window
-              </Badge>
-            ) : null}
           </div>
         </section>
 
