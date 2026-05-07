@@ -27,6 +27,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Alert, AlertDescription } from "@/components/ui/alert"
+import { InstallPrompt } from "@/components/install-prompt"
 import {
   Card,
   CardContent,
@@ -88,7 +89,7 @@ type FarmAppProps =
 export function FarmApp(props: FarmAppProps) {
   return (
     <main className="min-h-svh bg-background text-foreground">
-      <div className="mx-auto flex min-h-svh w-full max-w-[28rem] flex-col px-5 py-8">
+      <div className="mx-auto flex min-h-svh w-full max-w-[28rem] flex-col px-5 py-8 pb-[max(2rem,env(safe-area-inset-bottom))]">
         {props.view === "home" ? (
           <HomeScreen
             initialFarmId={props.initialFarmId}
@@ -208,6 +209,8 @@ function HomeScreen({
           <Settings className="size-8" aria-hidden="true" />
         </IconLink>
       </header>
+
+      <InstallPrompt />
 
       <form className="space-y-5" noValidate onSubmit={handleRequestSubmit}>
         <div>
@@ -514,11 +517,12 @@ function SettingsScreen() {
   return (
     <div className="space-y-8">
       <TopNav title="Settings" backHref="/" />
+      <InstallPrompt />
       <section className="space-y-3">
         <SectionLabel>Profile</SectionLabel>
         <Card>
           <CardContent className="px-4">
-            <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
               <span className="flex min-w-0 items-center gap-4">
                 <InitialsAvatar name={viewer?.profile?.name ?? "Farm"} />
                 <span className="min-w-0">
@@ -530,7 +534,6 @@ function SettingsScreen() {
                   </span>
                 </span>
               </span>
-              <ChevronRight className="size-6 text-muted-foreground" />
             </div>
           </CardContent>
         </Card>
@@ -600,7 +603,7 @@ function SettingsScreen() {
           <LinkRow
             href="/farms"
             icon={<FarmGlyph className="size-11" />}
-            title="Manage my Farms"
+            title="My Farms"
             subtitle="View and manage your Farms"
           />
         </Card>

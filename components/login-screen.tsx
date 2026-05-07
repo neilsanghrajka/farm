@@ -13,6 +13,7 @@ import {
 } from "react"
 
 import { Button } from "@/components/ui/button"
+import { InstallPrompt } from "@/components/install-prompt"
 import { api } from "@/convex/_generated/api"
 
 type LoginForm = {
@@ -211,6 +212,10 @@ export function LoginScreen({ children }: { children?: ReactNode }) {
           <p className="mx-auto mt-4 max-w-[18rem] text-lg leading-7 text-muted-foreground">
             Enter your email to sign in or create your account.
           </p>
+        </div>
+
+        <div className="mt-6 w-full">
+          <InstallPrompt />
         </div>
 
         <form
