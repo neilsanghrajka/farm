@@ -90,6 +90,9 @@ Acceptance criteria:
 - Engagement-request actions are disabled until the user has an eligible linked X account.
 - A user can start official X OAuth from Settings.
 - Farm explains before redirecting to X that requested access is limited to liking/unliking submitted X post URLs and staying connected.
+- Farm uses `tweet.read users.read like.write offline.access`, because X
+  requires the read scopes for the user-context like flow and account id
+  resolution; Farm uses them only for submitted post URLs.
 - A linked X account appears in Settings and unblocks Home.
 - A user can disconnect their X account.
 - Farm does not request broad posting, DM, password, or unrelated account access.
@@ -235,13 +238,12 @@ Removed the separate missing-X setup card from Home. When X is missing,
 expired, revoked, or otherwise not eligible, the main request CTA becomes
 `Link X account` with a warning icon and routes to Settings.
 
-### 2026-05-07: Strict X Like-Only Linking
+### 2026-05-07: Minimum Official X Like Scopes
 
-Changed X linking to request only `like.write offline.access`. Farm no longer
-requests user-context X read scopes for account linking; app-only post
-validation remains separate from user authorization. If X rejects liking under
-the stricter scope set, Farm should fail closed and report the permission
-blocker rather than silently broadening scopes.
+Changed X linking to request `tweet.read users.read like.write offline.access`.
+X requires `tweet.read` and `users.read` for the user-context like flow and
+account id resolution. Farm uses those read scopes only to identify the linked X
+account and like or unlike submitted post URLs.
 
 ### 2026-05-07: Minimal Official X Like Processing
 

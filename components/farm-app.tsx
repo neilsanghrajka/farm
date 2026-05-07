@@ -804,14 +804,15 @@ function SettingsScreen() {
                 </DialogHeader>
                 <div className="space-y-3 text-sm leading-6 text-muted-foreground">
                   <p>
-                    Farm asks only for permission to like and unlike X posts for
-                    you, plus permission to stay connected so you do not have to
-                    relink every session.
+                    Farm asks for permission to identify the X account you link,
+                    like and unlike X posts for you, and stay connected so you
+                    do not have to relink every session.
                   </p>
                   <p>
-                    Farm uses this only for X post URLs submitted in Farm. We do
-                    not request read, post, DM, follow, bookmark, email, or
-                    password access.
+                    X requires read scopes for the user-context like flow. Farm
+                    uses them only to identify your linked X account and like or
+                    unlike post URLs you submit. We do not request DM, follow,
+                    bookmark, email, password, or arbitrary posting access.
                   </p>
                   <p>
                     On X, you should see Farm App requesting access before you

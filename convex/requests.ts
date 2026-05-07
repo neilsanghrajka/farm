@@ -208,13 +208,17 @@ function xBearerToken() {
   return process.env.X_BEARER_TOKEN ?? process.env.X_API_BEARER_TOKEN ?? null
 }
 
-function xVerificationError(): never {
-  throw new ConvexError("Could not verify this X post.")
+function fallbackXPost(parsed: ParsedXPost): VerifiedXPost {
+  return {
+    providerPostId: parsed.providerPostId,
+    postUrl: parsed.postUrl,
+    ...(parsed.username ? { postAuthorUsername: parsed.username } : {}),
+  }
 }
 
 async function verifyXPost(parsed: ParsedXPost): Promise<VerifiedXPost> {
   const bearerToken = xBearerToken()
-  if (!bearerToken) xVerificationError()
+  if (!bearerToken) return fallbackXPost(parsed)
 
   const params = new URLSearchParams({
     "tweet.fields": "author_id,created_at,text",
@@ -230,11 +234,13 @@ async function verifyXPost(parsed: ParsedXPost): Promise<VerifiedXPost> {
     }
   )
 
-  if (!response.ok) xVerificationError()
+  if (!response.ok) return fallbackXPost(parsed)
 
   const body = maybeRecord(await response.json())
   const data = maybeRecord(body?.data)
-  if (maybeString(data?.id) !== parsed.providerPostId) xVerificationError()
+  if (maybeString(data?.id) !== parsed.providerPostId) {
+    return fallbackXPost(parsed)
+  }
 
   const includes = maybeRecord(body?.includes)
   const users = Array.isArray(includes?.users) ? includes.users : []
