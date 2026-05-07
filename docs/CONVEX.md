@@ -97,6 +97,26 @@ This command deploys Convex functions and sets `NEXT_PUBLIC_CONVEX_URL` for the
 Next.js build command it wraps. Vercel needs `CONVEX_DEPLOY_KEY` configured in
 the Production environment as a sensitive value.
 
+## Production Deployment Selection
+
+Do not assume `--prod` automatically targets the live Farm deployment. This
+project has used multiple production deployments, and the canonical production
+deployment selector is private operator configuration.
+
+For production data checks and debugging, prefer an explicit deployment selector
+from local/operator env:
+
+```bash
+pnpm exec convex run --deployment "$CONVEX_DEPLOYMENT" health:ping
+pnpm exec convex run --deployment "$CONVEX_DEPLOYMENT" --inline-query 'await ctx.db.query("users").take(1)'
+```
+
+Only use `--prod` after verifying it points at the live app deployment with a
+non-secret check, such as `health:ping` plus a bounded query for expected
+display-safe app data. Do not commit deployment names, Convex URLs, dashboard
+URLs, invite codes, user emails, or other account-specific identifiers while
+recording production debugging notes.
+
 Useful Vercel checks:
 
 ```bash

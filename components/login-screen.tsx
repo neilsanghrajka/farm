@@ -1,7 +1,7 @@
 "use client"
 
 import { useAuthActions, useConvexAuth } from "@convex-dev/auth/react"
-import { useMutation, useQuery } from "convex/react"
+import { useConvex, useMutation, useQuery } from "convex/react"
 import { LockKeyhole, Mail, Sprout, UserRound } from "lucide-react"
 import {
   FormEvent,
@@ -72,6 +72,7 @@ function getProfileValidationError(form: LoginForm) {
 export function LoginScreen({ children }: { children?: ReactNode }) {
   const { isAuthenticated, isLoading } = useConvexAuth()
   const { signIn, signOut } = useAuthActions()
+  const convex = useConvex()
   const viewer = useQuery(api.users.current)
   const ensureProfile = useMutation(api.users.ensureProfile)
   const emailId = useId()
@@ -166,6 +167,15 @@ export function LoginScreen({ children }: { children?: ReactNode }) {
 
       setPendingProfileName(null)
       pendingProfileNameRef.current = null
+      const account = await convex.query(api.users.hasAuthAccount, { email })
+
+      if (!account.exists) {
+        setStep("profile")
+        setError(null)
+        setIsSubmitting(false)
+        return
+      }
+
       await signIn("password", {
         email,
         password,

@@ -46,6 +46,21 @@ export const current = query({
   },
 })
 
+export const hasAuthAccount = query({
+  args: {
+    email: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const email = normalizeEmail(args.email)
+    const user = await ctx.db
+      .query("users")
+      .withIndex("email", (q) => q.eq("email", email))
+      .first()
+
+    return { exists: Boolean(user) }
+  },
+})
+
 export const ensureProfile = mutation({
   args: {
     name: v.optional(v.string()),

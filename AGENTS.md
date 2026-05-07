@@ -20,6 +20,7 @@
   - Before making the repo public or pushing open-source cleanup, run targeted scans for known live identifiers and remember that removing values from the current tree does not remove them from git history.
 - Cleanup after yourself: remove any open ports, background shells, background agents, temp artifacts, screenshots, logs, and other run-specific leftovers, but do not remove build caches or other artifacts that help future builds run faster.
 - For Convex workflows, read `docs/CONVEX.md` before changing backend functions, deployments, or Convex env vars.
+- Before production Convex debugging, verify the target deployment with the non-secret checks in `docs/CONVEX.md`; do not assume `--prod` is the live app deployment.
 - You have Vercel, Convex, shadcn, GitHub, and X (Twitter) skills available. Before making any changes involving these, look up the relevant skill instead of relying on memory.
 - When dealing with admin dashboards, prefer the Convex, Vercel, and GitHub CLIs instead of opening dashboards. Run them with `--help` when stuck instead of relying on memory. If a required admin-dashboard action cannot be done with a CLI, use the user's chosen authenticated browser manually and avoid committing browser/session details.
 - Browser/tooling choice:
