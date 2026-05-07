@@ -1,6 +1,6 @@
 # Farm PRD
 
-Last updated: 2026-05-06
+Last updated: 2026-05-07
 
 ## How to Update This Document
 
@@ -111,19 +111,36 @@ Acceptance criteria:
 
 ### 4. Request Engagement
 
-A user submits an X post URL and selects the Farm they want to request engagement from. If the user belongs to only one Farm, that Farm is selected by default. Farm validates that the URL is a valid X post before creating the request.
+A user opens Home, pastes an existing public X post URL, and selects the Farm
+they want to request engagement from. If the user belongs to only one Farm, that
+Farm is selected by default. Farm validates and canonicalizes the URL, verifies
+the target post through official X APIs, creates the engagement request only
+after successful validation, and routes the user to request status.
+
+Detailed spec: `docs/features/04_HOME.md`
 
 Acceptance criteria:
 
-- A user can paste an X post URL.
-- Farm validates that the URL points to a valid X post.
+- A user can paste an existing X post URL.
+- Farm does not require or support composing a new X post inside Farm for v1.
+- Engagement request creation is disabled until the user has an eligible linked
+  X account.
 - A user can select one of their Farms.
 - If the user belongs to exactly one Farm, it is selected by default.
-- Farm creates an engagement request only after successful validation.
+- If the user has no Farms, Home gives them a clear create-Farm path.
+- Farm validates that the URL points to a valid X post through official X APIs.
+- Duplicate requests for the same Farm and X post route to the existing request
+  instead of creating duplicate attempt rows.
+- Farm creates an engagement request and member-attempt snapshot only after
+  successful validation.
+- After request creation, the user lands on request status.
 
 ### 5. Automatic Likes
 
-After an engagement request is created, Farm attempts to like the post from each eligible connected X account in the selected Farm using official X APIs. The request creator's own account may be included if it is eligible and product policy allows it.
+After an engagement request is created, Farm attempts to like the post from each
+eligible connected X account in the selected Farm using official X APIs. The
+request creator's own account is included when the creator is an active member
+of the selected Farm and has an eligible linked X account.
 
 Acceptance criteria:
 
@@ -136,6 +153,8 @@ Acceptance criteria:
 ### 6. View Requests and Stats
 
 A user can see active and historical engagement requests, including request status, how many likes came through Farm, which members/accounts engaged, and which did not.
+
+Detailed spec: `docs/features/05_POST.md`
 
 Acceptance criteria:
 
@@ -169,7 +188,6 @@ Acceptance criteria:
 
 - X API permissions, rate limits, and pricing may affect what can be automated reliably.
 - Farm needs clear rules for failed likes, revoked OAuth tokens, private/deleted posts, duplicate requests, and already-liked posts.
-- The product should define whether the request creator's own account is included in automatic engagement.
 - Abuse prevention and trust controls may become important as Farms grow.
 - Future platforms, especially LinkedIn, will likely need their own account, post, and engagement rules.
 
@@ -183,6 +201,38 @@ Acceptance criteria:
 - Notifications when a request is created, completed, or needs attention.
 
 ## Amendments
+
+### 2026-05-07: Grand Unification Pending-Only Auto Engage
+
+Unified the X linking, Farm, Home request creation, and request-status work into
+one mainline direction. Request creation/status can ship before automatic X
+likes: created requests persist pending/skipped attempt rows, show those rows in
+request status, and leave eligible accounts pending until
+`docs/features/06_AUTO_ENGAGE.md` implements the official X like worker.
+
+### 2026-05-07: Home Request Creation Spec
+
+Expanded `docs/features/04_HOME.md` from placeholder to the detailed Home spec.
+Home now owns the v1 URL-paste request flow: linked-X gating, Farm selection,
+official X post validation, duplicate handling, request/attempt snapshot
+creation, Auto Engage handoff, recent request navigation, and request-status
+handoff. This supersedes treating request creation as part of the request-status
+implementation slice once the WIP branches land.
+
+### 2026-05-07: Request Status Implementation Slice
+
+Expanded the request-status implementation scope to include the narrow Home
+request creation path required for an end-to-end flow: X post URL input, Farm
+selection, request record creation, pending member-attempt snapshot, and recent
+request links. Automatic X likes and broader Home history/filter behavior remain
+separate.
+
+### 2026-05-06: Request Status Spec
+
+Added `docs/features/05_POST.md` as the detailed request-status spec. The current
+scope is private request detail, aggregate progress, member outcomes, historical
+visibility, copy-link, and an `Ask again` navigation contract. Request creation,
+X account linking, and automatic likes remain in their separate specs.
 
 ### 2026-05-06: Farm UI Scope
 

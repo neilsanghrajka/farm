@@ -8,19 +8,31 @@ Define the backend system that processes engagement requests and automatically l
 
 ## Scope
 
+- Current mainline behavior after the grand unification merge is intentionally
+  pending-only: Home request creation creates durable request rows and
+  `engagementAttempts` rows, marks missing/ineligible X accounts as skipped,
+  and leaves eligible accounts pending. This feature owns the follow-up worker
+  that turns those pending attempts into official X like actions.
 - Validate queued engagement requests.
 - Determine eligible Farm members and linked X accounts.
 - Use official X APIs to like posts.
 - Record per-account status.
+- Own the shared internal request lifecycle contract from request processing:
+  update one attempt outcome, recalculate aggregate request counts, and mark
+  requests completed, partial, failed, or canceled.
 - Handle retries, failures, revocations, and skipped accounts.
 - Provide status data to the app.
 
 ## Key Flows
 
 - Engagement request is created.
+- Pending-only interim behavior stores pending/skipped attempt rows and makes
+  them visible in request status.
 - Backend finds eligible accounts in the selected Farm.
 - Backend attempts the configured engagement action.
 - Backend records success, failure, skipped, or pending status.
+- Backend updates request aggregate counts and terminal request status when
+  attempts settle.
 - UI reads updated request status.
 
 ## Open Questions
@@ -37,4 +49,6 @@ Define the backend system that processes engagement requests and automatically l
 - Engagement attempts only use linked X accounts with valid authorization.
 - The system uses official X APIs only.
 - Each eligible account receives a durable status.
+- Attempt updates flow through shared helpers/mutations that keep request
+  counts and terminal status consistent.
 - Failed and skipped attempts are visible to the app.

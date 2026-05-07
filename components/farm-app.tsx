@@ -1,7 +1,7 @@
 "use client"
 
 import { useAuthActions } from "@convex-dev/auth/react"
-import { useMutation, useQuery } from "convex/react"
+import { useAction, useMutation, useQuery } from "convex/react"
 import {
   ArrowLeft,
   ChevronRight,
@@ -21,11 +21,12 @@ import {
 } from "lucide-react"
 import NextLink from "next/link"
 import type * as React from "react"
-import { FormEvent, useId, useMemo, useState } from "react"
+import { FormEvent, useEffect, useId, useMemo, useState } from "react"
 
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { Alert, AlertDescription } from "@/components/ui/alert"
 import {
   Card,
   CardContent,
@@ -48,8 +49,34 @@ type FarmSummary = {
   role: Role
 }
 
+type LinkedXStatus = {
+  status:
+    | "eligible"
+    | "missing"
+    | "needs_reconnect"
+    | "expired"
+    | "revoked"
+    | "disconnected"
+  eligible: boolean
+  eligibleAccountCount: number
+  username?: string | null
+  handle?: string | null
+}
+
+type XAccountState =
+  | { status: "unlinked" }
+  | {
+      status: "linked" | "needs_reconnect"
+      username: string | null
+      displayName: string | null
+    }
+
 type FarmAppProps =
-  | { view: "home" }
+  | {
+      view: "home"
+      initialPostUrl?: string
+      initialFarmId?: string
+    }
   | { view: "settings" }
   | { view: "farms" }
   | { view: "new" }
@@ -62,7 +89,12 @@ export function FarmApp(props: FarmAppProps) {
   return (
     <main className="min-h-svh bg-background text-foreground">
       <div className="mx-auto flex min-h-svh w-full max-w-[28rem] flex-col px-5 py-8">
-        {props.view === "home" ? <HomeScreen /> : null}
+        {props.view === "home" ? (
+          <HomeScreen
+            initialFarmId={props.initialFarmId}
+            initialPostUrl={props.initialPostUrl}
+          />
+        ) : null}
         {props.view === "settings" ? <SettingsScreen /> : null}
         {props.view === "farms" ? <MyFarmsScreen /> : null}
         {props.view === "new" ? <CreateFarmScreen /> : null}
@@ -75,15 +107,89 @@ export function FarmApp(props: FarmAppProps) {
         {props.view === "delete" ? (
           <DeleteFarmScreen farmId={props.farmId} />
         ) : null}
-        {props.view === "leave" ? <LeaveFarmScreen farmId={props.farmId} /> : null}
+        {props.view === "leave" ? (
+          <LeaveFarmScreen farmId={props.farmId} />
+        ) : null}
       </div>
     </main>
   )
 }
 
-function HomeScreen() {
+function HomeScreen({
+  initialFarmId,
+  initialPostUrl,
+}: {
+  initialFarmId?: string
+  initialPostUrl?: string
+}) {
   const farms = useQuery(api.farms.listMine)
-  const firstFarmHref = farms && farms.length > 0 ? `/farms/${farms[0].id}` : "/farms"
+  const recentRequests = useQuery(api.requests.listMine)
+  const postUrlId = useId()
+  const farmId = useId()
+  const [postUrl, setPostUrl] = useState(initialPostUrl ?? "")
+  const [chosenFarmId, setChosenFarmId] = useState<Id<"farms"> | null>(null)
+  const [requestError, setRequestError] = useState<string | null>(null)
+  const [isRequesting, setIsRequesting] = useState(false)
+  const initialFarm =
+    farms && initialFarmId
+      ? farms.find((farm) => farm.id === initialFarmId)?.id
+      : null
+  const hasFarmPrefill = Boolean(initialFarmId)
+  const singleFarmId = farms?.length === 1 ? farms[0]?.id : null
+  const selectedFarmId =
+    chosenFarmId ?? initialFarm ?? (!hasFarmPrefill ? singleFarmId : null)
+  const linkedXArgs = selectedFarmId ? { farmId: selectedFarmId } : {}
+  const linkedXStatus = useQuery(
+    api.requests.getLinkedXStatus,
+    linkedXArgs
+  ) as LinkedXStatus | undefined
+  const createRequest = useAction(api.requests.createFromHome)
+  const farmsLoaded = farms !== undefined
+  const selectedFarmExists = Boolean(
+    farms?.some((farm) => farm.id === selectedFarmId)
+  )
+  const xEligible = Boolean(linkedXStatus?.eligible)
+  const xStatusLoaded = linkedXStatus !== undefined
+  const invalidFarmPrefill = Boolean(
+    farmsLoaded && hasFarmPrefill && !initialFarm && !chosenFarmId
+  )
+  const canCreateRequest = Boolean(
+    postUrl.trim() &&
+      xStatusLoaded &&
+      xEligible &&
+      farmsLoaded &&
+      selectedFarmExists
+  )
+
+  async function handleRequestSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    const trimmedPostUrl = postUrl.trim()
+    if (!trimmedPostUrl) {
+      setRequestError("Paste an X post URL.")
+      return
+    }
+    if (!xEligible) {
+      setRequestError("Connect your X account before requesting likes.")
+      return
+    }
+    if (!selectedFarmId || !selectedFarmExists) {
+      setRequestError("Choose a Farm first.")
+      return
+    }
+
+    setIsRequesting(true)
+    setRequestError(null)
+    try {
+      const result = await createRequest({
+        farmId: selectedFarmId,
+        postUrl: trimmedPostUrl,
+      })
+      window.location.href = `/requests/${result.requestId}`
+    } catch (cause) {
+      setRequestError(message(cause, "Could not create the request."))
+      setIsRequesting(false)
+    }
+  }
 
   return (
     <div className="flex min-h-[calc(100svh-4rem)] flex-col gap-8">
@@ -103,7 +209,7 @@ function HomeScreen() {
         </IconLink>
       </header>
 
-      <section className="space-y-5">
+      <form className="space-y-5" noValidate onSubmit={handleRequestSubmit}>
         <div>
           <h1 className="text-[2.9rem] leading-[1.05] font-semibold tracking-normal">
             Ask for engagement
@@ -114,52 +220,107 @@ function HomeScreen() {
           </p>
         </div>
 
-        <Card className="h-16 justify-center py-0">
-          <CardContent className="flex items-center gap-4 px-5 text-lg text-muted-foreground">
-            <LinkIcon className="size-6 shrink-0" aria-hidden="true" />
-            <span>Paste X post URL</span>
-          </CardContent>
-        </Card>
+        {xStatusLoaded && !xEligible ? (
+          <MissingXGate status={linkedXStatus.status} />
+        ) : null}
+
+        <div className="flex h-16 items-center gap-4 rounded-xl border border-border bg-card px-5 text-lg text-muted-foreground shadow-sm">
+          <Label className="sr-only" htmlFor={postUrlId}>
+            X post URL
+          </Label>
+          <LinkIcon className="size-6 shrink-0" aria-hidden="true" />
+          <input
+            aria-invalid={Boolean(requestError)}
+            className="min-w-0 flex-1 bg-transparent text-lg text-foreground outline-none placeholder:text-muted-foreground"
+            disabled={!xEligible}
+            id={postUrlId}
+            inputMode="url"
+            onChange={(event) => {
+              setPostUrl(event.target.value)
+              setRequestError(null)
+            }}
+            placeholder="Paste X post URL"
+            type="url"
+            value={postUrl}
+          />
+        </div>
 
         <Card className="h-16 justify-center py-0">
-          <CardContent className="px-4">
-            <NextLink
-              className="flex items-center justify-between text-lg font-semibold"
-              href={firstFarmHref}
+          <CardContent className="flex items-center gap-4 px-4">
+            <Label className="sr-only" htmlFor={farmId}>
+              Farm
+            </Label>
+            <FarmGlyph className="size-11 shrink-0" />
+            <select
+              className="min-w-0 flex-1 bg-transparent text-lg font-semibold outline-none"
+              disabled={!farms || farms.length === 0 || !xEligible}
+              id={farmId}
+              onChange={(event) => {
+                setChosenFarmId(
+                  event.target.value
+                    ? (event.target.value as Id<"farms">)
+                    : null
+                )
+                setRequestError(null)
+              }}
+              value={selectedFarmId ?? ""}
             >
-              <span className="flex min-w-0 items-center gap-4">
-                <FarmGlyph className="size-11 shrink-0" />
-                <span className="truncate">
-                  {farms && farms.length > 0 ? farms[0].name : "Choose a Farm"}
-                </span>
-              </span>
-              <ChevronRight
-                className="size-6 shrink-0 text-muted-foreground"
-                aria-hidden="true"
-              />
-            </NextLink>
+              {!farms ? <option value="">Loading Farms...</option> : null}
+              {farms && farms.length === 0 ? (
+                <option value="">Choose a Farm</option>
+              ) : null}
+              {farms && farms.length > 0 && !selectedFarmId ? (
+                <option value="">Choose a Farm</option>
+              ) : null}
+              {farms?.map((farm) => (
+                <option key={farm.id} value={farm.id}>
+                  {farm.name}
+                </option>
+              ))}
+            </select>
+            <ChevronRight
+              className="size-6 shrink-0 text-muted-foreground"
+              aria-hidden="true"
+            />
           </CardContent>
         </Card>
 
-        <Button className="h-16 w-full rounded-xl text-lg font-semibold">
-          Request likes
+        {invalidFarmPrefill ? (
+          <ErrorText>Choose a Farm first.</ErrorText>
+        ) : null}
+        {requestError ? <ErrorText>{requestError}</ErrorText> : null}
+
+        <Button
+          className="h-16 w-full rounded-xl text-lg font-semibold"
+          disabled={isRequesting || !canCreateRequest}
+          type="submit"
+        >
+          {isRequesting ? "Creating request..." : "Request likes"}
         </Button>
 
-        <Card className="py-0">
-          <CardContent className="grid grid-cols-[1fr_auto_1fr] px-0 text-sm text-muted-foreground">
-            <span className="flex items-center justify-center gap-2 px-3 py-4">
-              <UserRound className="size-5 text-primary" aria-hidden="true" />
-              {farms ? farms.reduce((n, farm) => n + farm.memberCount, 0) : "..."}{" "}
-              linked accounts ready
-            </span>
-            <Separator orientation="vertical" />
-            <span className="flex items-center justify-center gap-2 px-3 py-4">
-              <LockKeyhole className="size-5 text-primary" aria-hidden="true" />
-              Official X API only
-            </span>
-          </CardContent>
-        </Card>
-      </section>
+        {xEligible ? (
+          <Card className="py-0">
+            <CardContent className="grid grid-cols-[1fr_auto_1fr] px-0 text-sm text-muted-foreground">
+              <span className="flex items-center justify-center gap-2 px-3 py-4">
+                <UserRound className="size-5 text-primary" aria-hidden="true" />
+                {linkedXStatus
+                  ? linkedAccountLabel(linkedXStatus.eligibleAccountCount)
+                  : "... linked accounts ready"}
+              </span>
+              <Separator orientation="vertical" />
+              <span className="flex items-center justify-center gap-2 px-3 py-4">
+                <LockKeyhole
+                  className="size-5 text-primary"
+                  aria-hidden="true"
+                />
+                Official X API only
+              </span>
+            </CardContent>
+          </Card>
+        ) : null}
+      </form>
+
+      <RecentRequests requests={recentRequests} />
 
       <section className="space-y-3">
         <div className="flex items-center justify-between">
@@ -174,9 +335,181 @@ function HomeScreen() {
   )
 }
 
+function MissingXGate({ status }: { status: LinkedXStatus["status"] }) {
+  const needsReconnect =
+    status === "needs_reconnect" || status === "expired" || status === "revoked"
+
+  return (
+    <Card>
+      <CardContent className="flex items-start gap-4 px-4">
+        <div className="mt-1 flex size-11 shrink-0 items-center justify-center rounded-xl bg-muted text-muted-foreground">
+          <TriangleAlert className="size-6" aria-hidden="true" />
+        </div>
+        <div className="min-w-0 flex-1 space-y-3">
+          <div>
+            <Badge variant="secondary">Setup</Badge>
+            <h2 className="mt-3 text-xl font-semibold tracking-normal">
+              {needsReconnect
+                ? "Reconnect your X account"
+                : "Connect your X account"}
+            </h2>
+            <p className="mt-2 text-base leading-7 text-muted-foreground">
+              Required before you can request likes from a Farm.
+            </p>
+          </div>
+          <Button className="h-12 rounded-xl" asChild>
+            <NextLink href="/settings">
+              {needsReconnect ? "Reconnect X account" : "Go to Settings"}
+            </NextLink>
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
+  )
+}
+
+function RecentRequests({
+  requests,
+}: {
+  requests:
+    | Array<{
+        id: Id<"engagementRequests">
+        farmName: string
+        postTitle: string
+        status: "active" | "completed" | "partial" | "failed" | "canceled"
+        likedCount: number
+        pendingCount: number
+        targetMemberCount: number
+      }>
+    | undefined
+}) {
+  if (requests === undefined || requests.length === 0) {
+    return null
+  }
+
+  return (
+    <section className="space-y-3">
+      <h2 className="text-xl font-semibold tracking-normal">
+        {requests.length === 1 ? "Recent request" : "Recent requests"}
+      </h2>
+      <Card className="gap-0 py-0">
+        {requests.map((request) => (
+          <NextLink
+            className="flex min-h-20 items-center justify-between gap-3 border-b border-border px-4 py-3 last:border-b-0"
+            href={`/requests/${request.id}`}
+            key={request.id}
+          >
+            <span className="min-w-0">
+              <span className="block truncate text-base font-semibold">
+                {request.postTitle}
+              </span>
+              <span className="block truncate text-sm text-muted-foreground">
+                {request.farmName} · {request.likedCount} of{" "}
+                {request.targetMemberCount} likes
+              </span>
+            </span>
+            <span className="flex shrink-0 items-center gap-2">
+              <RequestSummaryBadge
+                pendingCount={request.pendingCount}
+                status={request.status}
+              />
+              <ChevronRight className="size-5 text-muted-foreground" />
+            </span>
+          </NextLink>
+        ))}
+      </Card>
+    </section>
+  )
+}
+
+function linkedAccountLabel(count: number) {
+  return `${count} linked ${count === 1 ? "account" : "accounts"} ready`
+}
+
+function RequestSummaryBadge({
+  pendingCount,
+  status,
+}: {
+  pendingCount: number
+  status: "active" | "completed" | "partial" | "failed" | "canceled"
+}) {
+  if (status === "completed") {
+    return (
+      <Badge className="bg-primary/10 text-primary" variant="secondary">
+        Complete
+      </Badge>
+    )
+  }
+  if (status === "failed") {
+    return <Badge variant="destructive">Failed</Badge>
+  }
+  if (status === "canceled") {
+    return <Badge variant="outline">Canceled</Badge>
+  }
+  return (
+    <Badge variant="outline">
+      {pendingCount > 0 ? `${pendingCount} pending` : "Active"}
+    </Badge>
+  )
+}
+
 function SettingsScreen() {
   const viewer = useQuery(api.users.current)
+  const xAccount = useQuery(api.accounts.currentX)
+  const startXOAuth = useAction(api.xOAuth.start)
+  const disconnectX = useMutation(api.accounts.disconnectX)
+  const syncXStatus = useMutation(api.accounts.syncCurrentXStatus)
   const { signOut } = useAuthActions()
+  const [initialXCallbackState] = useState(getInitialXCallbackState)
+  const [isConnectingX, setIsConnectingX] = useState(false)
+  const [isDisconnectingX, setIsDisconnectingX] = useState(false)
+  const [xError, setXError] = useState<string | null>(
+    initialXCallbackState.hasError ? "Could not connect X. Try again." : null
+  )
+  const [xNotice, setXNotice] = useState<string | null>(
+    initialXCallbackState.isConnected ? "X account connected." : null
+  )
+
+  useEffect(() => {
+    if (initialXCallbackState.shouldCleanUrl) {
+      window.history.replaceState(null, "", "/settings")
+    }
+  }, [initialXCallbackState.shouldCleanUrl])
+
+  useEffect(() => {
+    if (xAccount?.status === "needs_reconnect") {
+      void syncXStatus()
+    }
+  }, [syncXStatus, xAccount?.status])
+
+  async function handleConnectX() {
+    setIsConnectingX(true)
+    setXError(null)
+    setXNotice(null)
+
+    try {
+      const result = await startXOAuth({ returnTo: "/settings" })
+      window.location.href = result.authorizationUrl
+    } catch (cause) {
+      setXError(message(cause, "Could not start X account linking."))
+      setIsConnectingX(false)
+    }
+  }
+
+  async function handleDisconnectX() {
+    setIsDisconnectingX(true)
+    setXError(null)
+    setXNotice(null)
+
+    try {
+      await disconnectX()
+      setXNotice("X account disconnected.")
+    } catch (cause) {
+      setXError(message(cause, "Could not disconnect X."))
+    } finally {
+      setIsDisconnectingX(false)
+    }
+  }
 
   return (
     <div className="space-y-8">
@@ -199,6 +532,64 @@ function SettingsScreen() {
               </span>
               <ChevronRight className="size-6 text-muted-foreground" />
             </div>
+          </CardContent>
+        </Card>
+      </section>
+
+      <section className="space-y-3">
+        <SectionLabel>Connected accounts</SectionLabel>
+        <Card className="py-0">
+          <CardContent className="px-4 py-4">
+            <div className="flex items-center gap-4">
+              <div className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-muted">
+                <XLogoMark className="size-5" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2">
+                  <h2 className="truncate text-lg font-semibold">X account</h2>
+                  <XAccountBadge status={xAccount?.status} />
+                </div>
+                <p className="mt-1 truncate text-base text-muted-foreground">
+                  {getXAccountSubtitle(xAccount)}
+                </p>
+              </div>
+              {xAccount?.status === "linked" ? (
+                <Button
+                  className="h-10 shrink-0 rounded-xl border-destructive text-destructive hover:bg-destructive/10"
+                  disabled={isDisconnectingX}
+                  onClick={() => void handleDisconnectX()}
+                  type="button"
+                  variant="outline"
+                >
+                  {isDisconnectingX ? "Disconnecting" : "Disconnect"}
+                </Button>
+              ) : (
+                <Button
+                  className="h-10 shrink-0 rounded-xl"
+                  disabled={xAccount === undefined || isConnectingX}
+                  onClick={() => void handleConnectX()}
+                  type="button"
+                >
+                  {isConnectingX
+                    ? "Connecting"
+                    : xAccount?.status === "needs_reconnect"
+                      ? "Reconnect"
+                      : "Connect"}
+                </Button>
+              )}
+            </div>
+            {xNotice ? (
+              <Alert className="mt-3 border-primary/20 bg-primary/5 text-primary">
+                <AlertDescription className="text-primary">
+                  {xNotice}
+                </AlertDescription>
+              </Alert>
+            ) : null}
+            {xError ? (
+              <Alert className="mt-3" variant="destructive">
+                <AlertDescription>{xError}</AlertDescription>
+              </Alert>
+            ) : null}
           </CardContent>
         </Card>
       </section>
@@ -424,7 +815,7 @@ function FarmDetailScreen({ farmId }: { farmId: Id<"farms"> }) {
         </DestructiveLink>
       )}
       <Button className="h-14 w-full rounded-xl text-base" asChild>
-        <NextLink href="/">
+        <NextLink href={`/?farmId=${encodeURIComponent(farmId)}`}>
           <Sparkles className="size-5" />
           Request engagement
         </NextLink>
@@ -498,7 +889,11 @@ function JoinFarmScreen({ inviteCode }: { inviteCode: string }) {
           >
             {isSubmitting ? "Joining..." : "Join Farm"}
           </Button>
-          <Button className="h-14 w-full rounded-xl text-base" variant="outline" asChild>
+          <Button
+            className="h-14 w-full rounded-xl text-base"
+            variant="outline"
+            asChild
+          >
             <NextLink href="/farms">Not now</NextLink>
           </Button>
         </div>
@@ -600,17 +995,26 @@ function ConfirmScreen({
         <Button
           className={cn(
             "h-14 w-full rounded-xl text-base",
-            !filled && "border-destructive text-destructive hover:bg-destructive/10"
+            !filled &&
+              "border-destructive text-destructive hover:bg-destructive/10"
           )}
           disabled={disabled || pending}
           onClick={confirm}
           type="button"
           variant={filled ? "destructive" : "outline"}
         >
-          {filled ? <Trash2 className="size-5" /> : <LogOut className="size-5" />}
+          {filled ? (
+            <Trash2 className="size-5" />
+          ) : (
+            <LogOut className="size-5" />
+          )}
           {pending ? "Working..." : action}
         </Button>
-        <Button className="h-14 w-full rounded-xl text-base" variant="outline" asChild>
+        <Button
+          className="h-14 w-full rounded-xl text-base"
+          variant="outline"
+          asChild
+        >
           <NextLink href={backHref}>Cancel</NextLink>
         </Button>
       </div>
@@ -698,7 +1102,9 @@ function FarmHeader({
     <section className="flex items-start gap-5">
       <FarmGlyph className="size-24 shrink-0 rounded-3xl" />
       <div className="min-w-0 pt-2">
-        <h1 className="truncate text-3xl font-semibold tracking-normal">{name}</h1>
+        <h1 className="truncate text-3xl font-semibold tracking-normal">
+          {name}
+        </h1>
         <dl className="mt-4 space-y-2 text-base text-muted-foreground">
           <Meta icon={<LockKeyhole />} label="Privacy" value="Private Farm" />
           <Meta
@@ -734,7 +1140,12 @@ function Meta({
 function MemberList({
   members,
 }: {
-  members: Array<{ membershipId: Id<"farmMemberships">; name: string; initials: string; role: Role }>
+  members: Array<{
+    membershipId: Id<"farmMemberships">
+    name: string
+    initials: string
+    role: Role
+  }>
 }) {
   return (
     <section className="space-y-4">
@@ -747,7 +1158,9 @@ function MemberList({
           >
             <span className="flex min-w-0 items-center gap-4">
               <InitialsAvatar name={member.name} initials={member.initials} />
-              <span className="truncate text-base font-semibold">{member.name}</span>
+              <span className="truncate text-base font-semibold">
+                {member.name}
+              </span>
             </span>
             <span className="flex shrink-0 items-center gap-3">
               <RoleBadge role={member.role} />
@@ -822,7 +1235,11 @@ function DestructiveLink({
   children: React.ReactNode
 }) {
   return (
-    <Button className="h-14 w-full rounded-xl text-base" variant="outline" asChild>
+    <Button
+      className="h-14 w-full rounded-xl text-base"
+      variant="outline"
+      asChild
+    >
       <NextLink
         className="border-destructive text-destructive hover:bg-destructive/10"
         href={href}
@@ -890,10 +1307,81 @@ function InitialsAvatar({
   )
 }
 
+function XAccountBadge({
+  status,
+}: {
+  status: XAccountState["status"] | undefined
+}) {
+  if (status === undefined) {
+    return <Badge variant="secondary">Checking</Badge>
+  }
+
+  if (status === "linked") {
+    return <Badge variant="secondary">Connected</Badge>
+  }
+
+  if (status === "needs_reconnect") {
+    return <Badge variant="secondary">Reconnect</Badge>
+  }
+
+  return <Badge variant="outline">Not connected</Badge>
+}
+
+function getXAccountSubtitle(account: XAccountState | undefined) {
+  if (account === undefined) {
+    return "Checking connection"
+  }
+
+  if (account.status === "linked") {
+    return account.username ? `@${account.username}` : "Connected"
+  }
+
+  if (account.status === "needs_reconnect") {
+    return "Reconnect your X account"
+  }
+
+  return "Link your X account"
+}
+
+function getInitialXCallbackState() {
+  if (typeof window === "undefined") {
+    return {
+      hasError: false,
+      isConnected: false,
+      shouldCleanUrl: false,
+    }
+  }
+
+  const params = new URLSearchParams(window.location.search)
+  const hasError = params.has("x_error")
+  const isConnected = params.get("x_account") === "connected"
+
+  return {
+    hasError,
+    isConnected,
+    shouldCleanUrl: hasError || isConnected,
+  }
+}
+
+function XLogoMark({ className }: { className?: string }) {
+  return (
+    <svg
+      aria-hidden="true"
+      className={cn("fill-current text-foreground", className)}
+      viewBox="0 0 24 24"
+    >
+      <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24h-6.657l-5.214-6.817-5.966 6.817H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+    </svg>
+  )
+}
+
 function RoleBadge({ role }: { role: Role }) {
   return (
     <Badge
-      className={cn("capitalize", role === "admin" && "bg-primary/10 text-primary")}
+      className={cn(
+        "capitalize",
+        role === "admin" && "bg-primary/10 text-primary"
+      )}
       variant={role === "admin" ? "secondary" : "outline"}
     >
       {role}
@@ -913,7 +1401,9 @@ function LoadingScreen({ title }: { title: string }) {
   return (
     <div className="space-y-8">
       <TopNav title={title} backHref="/" />
-      <p className="pt-8 text-center text-sm text-muted-foreground">Loading...</p>
+      <p className="pt-8 text-center text-sm text-muted-foreground">
+        Loading...
+      </p>
     </div>
   )
 }

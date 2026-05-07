@@ -16,7 +16,8 @@ using that linked state to gate engagement actions in the app.
 
 ## Current Scope
 
-- Keep the existing Home and Settings mocks as the design reference.
+- Use the approved X linking mocks under `docs/mocks/01_X_LOGIN/` as the
+  implementation reference.
 - After password login, land the user on Home.
 - If the user has not linked X, show a blocking setup prompt on Home.
 - The Home prompt sends the user to Settings.
@@ -54,12 +55,12 @@ using that linked state to gate engagement actions in the app.
 
 ## Design
 
-- Approved reference mocks:
+- Base app reference mocks:
   - `docs/mocks/ask-engagement.png`
   - `docs/mocks/settings-account.png`
   - `docs/mocks/farm-management.png`
   - `docs/mocks/request-status.png`
-- Current X linking mocks for approval:
+- Approved X linking implementation mocks:
   - `docs/mocks/01_X_LOGIN/home-missing-x.png`
   - `docs/mocks/01_X_LOGIN/settings-x-unlinked.png`
   - `docs/mocks/01_X_LOGIN/settings-x-linked.png`
@@ -72,12 +73,13 @@ using that linked state to gate engagement actions in the app.
 
 Key layout decisions:
 
-- Home remains the existing `Ask for engagement` surface.
+- Home still includes the `Ask for engagement` surface, but the missing-X
+  version leads with X setup.
 - Home keeps the Settings gear entry point from the existing mock.
 - If X is missing, the post URL field, Farm selector, and request button should
   communicate that setup is required before engagement can be requested.
-- The missing-X setup prompt should appear near the top of Home, before the
-  disabled request controls, and should route to Settings.
+- The missing-X setup prompt should appear at the top of Home, before the
+  `Ask for engagement` controls, and should route to Settings.
 - Home should not show badges such as `Official X API only`; keep the missing-X
   state clean and action-oriented.
 - Settings keeps the existing connected-account treatment and should support
@@ -89,9 +91,9 @@ Key layout decisions:
 - Use the official black X mark treatment in the X account row.
 - Use shadcn/Tailwind tokens from `app/globals.css`; avoid one-off page colors
   for foundational surfaces.
-- Compose existing shadcn components only. Today that means `Button` plus
-  semantic native controls unless another component already exists in
-  `components/ui`.
+- Use shadcn primitives for the UI surfaces instead of hand-rolling local
+  equivalents. If a needed primitive is missing from `components/ui`, add it
+  through the shadcn CLI with `pnpm`.
 
 Mobile behavior:
 
@@ -106,9 +108,12 @@ Desktop behavior:
 
 Design approval status:
 
-- Existing Home and Settings mocks are the approved direction.
-- X linking state mocks reflect the latest requested changes and need user
-  approval before implementation starts.
+- Approved X linking mocks are in `docs/mocks/01_X_LOGIN/`.
+- These mocks supersede earlier X linking drafts that showed `Official X OAuth`,
+  OAuth scopes, endpoint verification, `Home is unblocked`, `Official X API
+only`, X user ID/detail rows, or bottom `Back to Home` actions.
+- Implementation should match the approved mocks unless the user explicitly
+  requests another mock revision before build.
 
 ## Product Requirements
 
@@ -216,7 +221,8 @@ Home recognizable as the app's main working surface.
     including endpoint names, app IDs, or "official API" badges.
 - Blocking behavior:
   - Request engagement submission is disabled until X is linked.
-  - Home can still show Farm context, recent requests, or empty states.
+  - Missing-X Home should prioritize the top X account setup block and disabled
+    request controls.
   - Do not block basic navigation to Settings or Farm surfaces.
 - Accessibility basics:
   - Disabled controls need nearby explanatory text.
@@ -244,8 +250,8 @@ changing code for this feature:
   use the repo-local Vercel guidance in `docs/CONVEX.md`, `AGENTS.md`, and CLI
   help instead of guessing.
 - `$frontend-skill` and `$vercel-plugin/shadcn` for any Home or Settings UI
-  changes. Use only existing shadcn components unless a later approved task adds
-  more.
+  changes. Use shadcn primitives wherever they fit; add missing primitives with
+  `pnpm` and the shadcn CLI instead of creating custom replacements.
 
 Do not rely on memory for X, Convex, or Vercel behavior when implementing this
 feature. Re-open the relevant skill and use current official docs/CLI output
@@ -259,14 +265,20 @@ configuration.
   - Settings route or Settings screen.
   - OAuth callback route if the callback is handled by Next.js.
 - Component ownership:
-  - Create a small Home setup prompt component only if it keeps the Home file
-    readable.
+  - Prefer page-level composition from shadcn primitives over new reusable
+    custom UI components.
   - Keep Settings X account UI local to Settings unless reused elsewhere.
-- Existing shadcn components to compose:
-  - Use `Button` from `components/ui/button.tsx`.
-  - Use native semantic elements for sections, labels, status text, and links.
-  - Do not add new shadcn components for this pass unless implementation proves
-    an existing component already exists in the repo.
+- shadcn components to compose:
+  - Use `Button` for actions.
+  - Use `Card` for account/setup surfaces.
+  - Use `Badge` for connected/not-connected states.
+  - Use `AlertDialog` for disconnect confirmation if confirmation is needed.
+  - Use `Input` and `Label` for request-form fields if those fields are touched.
+  - Use `Alert` for recoverable OAuth errors and `Skeleton` for loading states
+    if those states are visible.
+  - Add missing shadcn primitives with `pnpm exec shadcn add ...` or the repo's
+    existing pnpm-based shadcn command. Do not create custom local replacements
+    for primitives shadcn already provides.
 - State management:
   - Linked-account status should come from Convex queries.
   - OAuth start/disconnect actions should call backend functions or API routes,
@@ -286,20 +298,16 @@ configuration.
 
 ### Route And Runtime Boundary
 
-Implementation must decide where the OAuth callback is handled before writing
-the token exchange code:
+Chosen implementation boundary:
 
-- Option A: Next.js route handler owns `/callback`, exchanges the OAuth code,
-  then calls Convex to upsert the linked account. In this option, Vercel must
-  have `X_CLIENT_ID`, `X_CLIENT_SECRET`, `X_REDIRECT_URI`, `X_OAUTH_SCOPES`,
-  `X_APP_ID`, and `X_ENROLLED_ACCOUNT_ID`.
-- Option B: Convex HTTP action owns the OAuth callback, exchanges the OAuth
-  code, and writes the linked account directly. In this option, Convex must have
-  the same X env vars and the X Developer Console callback should point to the
-  Convex site URL route.
-- The current production env setup supports either direction except for the two
-  missing secret credential values. Do not duplicate token-exchange logic across
-  both runtimes.
+- Next.js owns `/callback` only as an OAuth redirect shim. It forwards X's
+  `code`, `state`, and error query params to the Convex HTTP callback.
+- Convex owns the actual token exchange, linked-account write, token storage,
+  and final redirect back to Farm.
+- Do not duplicate token-exchange logic across Next.js and Convex.
+- Because the current X app is configured as `Native App`, it is a public PKCE
+  client. `X_CLIENT_ID` is required. `X_CLIENT_SECRET` is optional and should be
+  used only if the app is later changed to a confidential client type.
 
 ### Convex / Backend
 
@@ -322,8 +330,8 @@ Recommended account fields:
 - `displayName`: X display name when available.
 - `status`: `"linked" | "needs_reconnect" | "disconnected"`.
 - `scopes`: granted OAuth scopes.
-- `accessToken`: encrypted or otherwise protected token material.
-- `refreshToken`: encrypted or otherwise protected token material when issued.
+- `encryptedAccessToken`: AES-GCM encrypted token material.
+- `encryptedRefreshToken`: AES-GCM encrypted token material when issued.
 - `expiresAt`: token expiry timestamp when applicable.
 - `createdAt`, `updatedAt`, `disconnectedAt`.
 
@@ -350,6 +358,8 @@ Backend requirements:
 - Validate OAuth state before exchanging tokens.
 - Store only the minimum X account metadata needed by the product.
 - Keep token material server-side only.
+- Encrypt token material before storing it in Convex with
+  `X_TOKEN_ENCRYPTION_KEY`.
 - Return redacted account state to the client.
 - Do not expose `X_CLIENT_SECRET`, access tokens, refresh tokens, or raw OAuth
   responses to the browser.
@@ -381,9 +391,15 @@ Known working developer setup from prior local verification:
 - Billing model shown: Pay Per Use.
 - App permissions: `Read and write`.
 - Type of App: `Native App`.
-- Local callback / redirect URL used in testing:
-  `http://127.0.0.1:3000/callback`.
-- Local website URL used in testing: `http://127.0.0.1:3000`.
+- Local callback / redirect URLs used in testing:
+  - `http://127.0.0.1:3000/callback`
+  - `http://127.0.0.1:3001/callback` when port 3000 is already occupied
+- Local website URL used in testing: `http://localhost:3000` or
+  `http://localhost:3001`.
+- Keep the X callback on `127.0.0.1` if that is what is configured in the X
+  Developer Console, but set Convex `NEXT_PUBLIC_APP_URL` to the matching
+  `localhost` app origin so the final redirect preserves the Convex Auth
+  browser session cookie.
 - Scopes verified for the like flow:
   `tweet.read users.read like.write offline.access`.
 
@@ -391,24 +407,23 @@ Sensitive credential handling:
 
 - OAuth 2.0 Client ID exists in the console and can be used in code through an
   environment variable.
-- Client Secret was displayed once by X and must not be committed or pasted into
-  docs.
-- If the secret is unavailable, retrieve or regenerate it from:
+- The current `Native App` setup is a public PKCE client, so token exchange can
+  use `client_id` in the request body without a client secret.
+- If the app is later changed to a confidential client type, retrieve or
+  regenerate the OAuth 2.0 Client Secret from:
   `Developer Console -> Apps -> app 32883674 -> Keys & Tokens`.
 - Use these environment variables for X credentials and production callback
   configuration:
   - `X_CLIENT_ID`
-  - `X_CLIENT_SECRET`
+  - `X_CLIENT_SECRET` when using a confidential client
   - `X_REDIRECT_URI`
   - `X_OAUTH_SCOPES`
   - `X_APP_ID`
   - `X_ENROLLED_ACCOUNT_ID`
-- Store server-only X values on the runtime that handles OAuth/token exchange.
-  If Convex handles the callback, set them on Convex. If Next.js route handlers
-  handle the callback, set them on Vercel. It is acceptable to set them on both
-  while the implementation boundary is still being finalized.
+- Store server-only X values on Convex because Convex handles token exchange.
+  Vercel only needs public app/Convex URLs for the `/callback` redirect shim.
 
-Current production env status as of 2026-05-06:
+Current production env status as of 2026-05-07:
 
 - Vercel Production has:
   - `CONVEX_DEPLOY_KEY`
@@ -421,17 +436,37 @@ Current production env status as of 2026-05-06:
 - Convex `production-eu` has:
   - `NEXT_PUBLIC_APP_URL`
   - `NEXT_PUBLIC_CONVEX_SITE_URL`
+  - `X_CLIENT_ID`
   - `X_REDIRECT_URI`
   - `X_OAUTH_SCOPES`
   - `X_APP_ID`
   - `X_ENROLLED_ACCOUNT_ID`
-- Still missing before production OAuth can work:
-  - `X_CLIENT_ID`
-  - `X_CLIENT_SECRET`
-- The known local X Developer Console callback is
-  `http://127.0.0.1:3000/callback`. Before production verification, add the
-  production callback that matches the chosen runtime, such as
-  `https://spcfarm.vercel.app/callback` for a Next.js callback.
+  - `X_TOKEN_ENCRYPTION_KEY`
+- Convex dev deployment `superb-oyster-941` has local OAuth values for
+  localhost testing.
+- `X_CLIENT_SECRET` is not required for the current public PKCE app type.
+- X Developer Console callback URLs now include:
+  - `http://127.0.0.1:3000/callback`
+  - `http://127.0.0.1:3001/callback`
+  - `https://spcfarm.vercel.app/callback`
+
+Required dashboard / env setup before build:
+
+1. Use Computer Use to control Dia, where X Developer Console is already logged
+   in.
+2. Open:
+   `https://console.x.com/accounts/2051926369484025856/apps/settings?appId=32883674`.
+3. Confirm the production callback URL exists:
+   `https://spcfarm.vercel.app/callback`.
+4. Open app `32883674` -> `Keys & Tokens`.
+5. Confirm OAuth 2.0 `X_CLIENT_ID` is set on Convex.
+6. Confirm `X_TOKEN_ENCRYPTION_KEY` is set on Convex.
+7. Set `X_CLIENT_SECRET` on Convex only if the X app is changed from Native App
+   to a confidential client type.
+8. Use Vercel CLI and Convex CLI for env updates whenever possible. Use Dia only
+   for X dashboard actions that do not have a CLI.
+9. Do not commit, print, or paste the client secret or token encryption key into
+   docs, code, logs, or chat.
 
 Known working OAuth flow:
 
@@ -496,8 +531,8 @@ Implementation agents should verify:
 6. Add the `accounts` schema and indexes.
 7. Add Convex functions/endpoints for linked account state.
 8. Add OAuth start/callback handling.
-9. Add Settings linked/unlinked UI using the current X linking mocks.
-10. Add Home missing-X blocked state using the current Home mock.
+9. Add Settings linked/unlinked UI using the approved X linking mocks.
+10. Add Home missing-X blocked state using the approved X linking mock.
 11. Add disconnect behavior.
 12. Verify local auth, OAuth redirects, linked state, disconnect, and Home
     gating.
@@ -511,7 +546,8 @@ Implementation agents should verify:
   - `pnpm exec convex run health:ping`.
 - Confirm env/config before OAuth testing:
   - `X_CLIENT_ID` is set in the runtime handling OAuth.
-  - `X_CLIENT_SECRET` is set in the runtime handling OAuth.
+  - `X_CLIENT_SECRET` is set only if using a confidential X client.
+  - `X_TOKEN_ENCRYPTION_KEY` is set in the runtime handling OAuth.
   - `X_REDIRECT_URI` matches an allowed X Developer Console callback.
   - `X_OAUTH_SCOPES` contains
     `tweet.read users.read like.write offline.access`.

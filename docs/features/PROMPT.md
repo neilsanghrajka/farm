@@ -10,7 +10,12 @@ Current feature order:
 
 1. `docs/features/00_LOGIN.md` - password-based Farm login/signup.
 2. `docs/features/01_X_LOGIN.md` - first authenticated Home experience and X account linking.
-3. `docs/features/07_ONBOARDING.md` - deferred broader onboarding and invite acceptance.
+3. `docs/features/02_SETTINGS.md` - settings surface placeholder for account, X, and Farm navigation.
+4. `docs/features/03_FARM.md` - Farm creation, join links, membership, leave, and delete.
+5. `docs/features/04_HOME.md` - authenticated Home and URL-paste request creation.
+6. `docs/features/05_POST.md` - request status/detail and request history read model.
+7. `docs/features/06_AUTO_ENGAGE.md` - automatic like processing worker.
+8. `docs/features/07_ONBOARDING.md` - deferred broader onboarding and invite acceptance.
 
 Do not treat X account linking as the broader onboarding spec unless the user explicitly asks to merge those scopes.
 
@@ -53,7 +58,11 @@ If the notes mix onboarding, invite acceptance, Home, Settings, and X OAuth, sep
 
 - Farm login belongs in `00_LOGIN`.
 - X account linking and the missing-X Home block belong in `01_X_LOGIN`.
-- Invite acceptance, Farm joining, Farm leaving, and broader first-run choices belong in the deferred onboarding/Farm specs unless the user explicitly moves them into current scope.
+- Farm creation, join links, Farm joining, Farm leaving, and Farm deletion belong in `03_FARM`.
+- URL-paste request creation from Home belongs in `04_HOME`.
+- Request status/detail belongs in `05_POST`.
+- Automatic like processing belongs in `06_AUTO_ENGAGE`.
+- Broader first-run choices belong in deferred onboarding unless the user explicitly moves them into current scope.
 
 ### 2. Run Parallel Spec-Writing
 
@@ -88,12 +97,30 @@ Each spec-writing subagent must inspect a distinct area and return concise findi
 Use the relevant repo skills by reference:
 
 - `$frontend-skill`
-- `$vercel-plugin/shadcn`
+- `$vercel:shadcn` at
+  `/Users/neilsanghrajka/.codex/plugins/cache/openai-curated/vercel/9d07fd08/skills/shadcn/SKILL.md`
 - Convex skills
 - Vercel skills
 - X/Twitter skills when the feature touches X
 - ImageGen when the feature needs visual mocks
 - `$browser-use` / `@Browser` in-app browser skill for visual and flow testing
+
+Shadcn implementation guidance:
+
+- Use `$vercel:shadcn` for all UI implementation guidance.
+- Prefer shadcn components for UI primitives and interaction patterns. Shadcn
+  has components for common product needs: buttons, inputs, labels, forms,
+  cards, badges, alerts, dialogs, dropdowns, sheets, tabs, tables, skeletons,
+  separators, avatars, scroll areas, tooltips, and more.
+- If a needed shadcn component is not already in `components/ui`, the spec
+  should tell implementors to add it with the shadcn CLI using `pnpm`/`pnpm dlx`
+  and the non-interactive flags from the skill, then compose that component.
+- Do not hand-roll custom UI primitives or local one-off replacements when a
+  shadcn component exists. Do not create custom app components just to wrap
+  basic UI primitives; compose the shadcn components directly unless there is a
+  clearly feature-specific, reusable product component.
+- Keep foundational styling on shadcn/Tailwind v4 theme tokens from
+  `app/globals.css`.
 
 Browser surface guidance:
 
@@ -236,7 +263,10 @@ Include:
 - navigation
 - loading/error/success handling
 
-Do not invent new shadcn components if existing repo components can be composed.
+Use shadcn components wherever they fit. If the needed component is not already
+installed locally, specify the shadcn component to add instead of asking
+implementors to hand-roll custom UI. Avoid creating bespoke local UI components
+for primitives that shadcn already provides.
 
 ### Convex / Backend
 
