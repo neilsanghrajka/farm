@@ -753,9 +753,22 @@ export const get = query({
   },
 })
 
+const defaultRequestSummaryLimit = 5
+const maxRequestSummaryLimit = 50
+
+function requestSummaryLimit(value: number | undefined) {
+  if (value === undefined) return defaultRequestSummaryLimit
+  if (!Number.isFinite(value)) return defaultRequestSummaryLimit
+  return Math.min(
+    maxRequestSummaryLimit,
+    Math.max(1, Math.floor(value))
+  )
+}
+
 export const listMine = query({
-  args: {},
-  handler: async (ctx) => {
+  args: { limit: v.optional(v.number()) },
+  handler: async (ctx, args) => {
+    const limit = requestSummaryLimit(args.limit)
     let current: Viewer
     try {
       current = await viewer(ctx)
@@ -780,7 +793,7 @@ export const listMine = query({
           q.eq("farmId", membership.farmId)
         )
         .order("desc")
-        .take(3)
+        .take(limit)
 
       for (const request of requests) {
         const counts = await visibleAttemptCounts(ctx, request)
@@ -800,7 +813,7 @@ export const listMine = query({
     }
 
     summaries.sort((a, b) => b.createdAt - a.createdAt)
-    return summaries.slice(0, 5)
+    return summaries.slice(0, limit)
   },
 })
 

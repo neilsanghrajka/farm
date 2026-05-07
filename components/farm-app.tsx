@@ -216,7 +216,7 @@ function HomeScreen({
   initialPostUrl?: string
 }) {
   const farms = useQuery(api.farms.listMine) as FarmSummary[] | undefined
-  const recentRequests = useQuery(api.requests.listMine)
+  const recentRequests = useQuery(api.requests.listMine, { limit: 5 })
   const postUrlId = useId()
   const farmId = useId()
   const [postUrl, setPostUrl] = useState(initialPostUrl ?? "")
@@ -504,7 +504,7 @@ function RecentRequests({
 }
 
 function PostsScreen() {
-  const requests = useQuery(api.requests.listMine)
+  const requests = useQuery(api.requests.listMine, { limit: 50 })
 
   return (
     <div className="flex flex-1 flex-col gap-8 pb-5">
