@@ -377,12 +377,16 @@ function HomeScreen({
             </SelectTrigger>
             <SelectContent
               align="start"
-              className="w-[var(--radix-select-trigger-width)]"
+              className="w-[calc(var(--radix-select-trigger-width)+1rem)] max-w-[calc(100vw-2.5rem)]"
               position="popper"
               sideOffset={6}
             >
               {farms?.map((farm) => (
-                <SelectItem key={farm.id} value={farm.id}>
+                <SelectItem
+                  className="py-3 pr-10 pl-3 text-base"
+                  key={farm.id}
+                  value={farm.id}
+                >
                   {farm.name}
                 </SelectItem>
               ))}
