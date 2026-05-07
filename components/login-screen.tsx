@@ -2,7 +2,7 @@
 
 import { useAuthActions, useConvexAuth } from "@convex-dev/auth/react"
 import { useConvex, useMutation, useQuery } from "convex/react"
-import { LockKeyhole, Mail, Sprout, UserRound } from "lucide-react"
+import { LockKeyhole, Mail, UserRound } from "lucide-react"
 import {
   FormEvent,
   ReactNode,
@@ -264,15 +264,21 @@ export function LoginScreen({ children }: { children?: ReactNode }) {
   return (
     <main className="flex min-h-svh items-center justify-center bg-background px-6 py-8 text-foreground">
       <section className="flex w-full max-w-[22rem] flex-col items-center">
-        <div className="mb-10 flex items-end gap-1 text-primary">
+        <div className="mb-10 flex items-end gap-2 text-primary">
           <span className="text-5xl leading-none font-semibold tracking-normal">
             Farm
           </span>
-          <Sprout
+          <span
             aria-hidden="true"
-            className="mb-6 size-8"
-            strokeWidth={2.4}
-          />
+            className="mb-4 inline-flex size-10 overflow-hidden rounded-xl"
+          >
+            <img
+              alt=""
+              className="size-full object-cover"
+              draggable={false}
+              src="/icon-192.png"
+            />
+          </span>
         </div>
 
         <div className="w-full text-center">

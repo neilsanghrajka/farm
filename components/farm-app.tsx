@@ -12,7 +12,6 @@ import {
   Send,
   Settings,
   Sparkles,
-  Sprout,
   Trash2,
   TriangleAlert,
   UserRound,
@@ -311,7 +310,7 @@ function HomeScreen({
           href="/"
           aria-label="Farm Home"
         >
-          <Sprout className="size-7" aria-hidden="true" />
+          <FarmGlyph className="size-8 rounded-lg" />
           <span className="text-4xl leading-none font-semibold tracking-normal">
             Farm
           </span>
@@ -1639,12 +1638,17 @@ function FarmGlyph({ className }: { className?: string }) {
   return (
     <span
       className={cn(
-        "inline-flex items-center justify-center rounded-xl bg-primary/10 text-primary",
+        "inline-flex items-center justify-center overflow-hidden rounded-xl bg-transparent",
         className
       )}
       aria-hidden="true"
     >
-      <UsersRound className="size-1/2" strokeWidth={2.3} />
+      <img
+        alt=""
+        className="size-full object-cover"
+        draggable={false}
+        src="/icon-192.png"
+      />
     </span>
   )
 }
