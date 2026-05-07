@@ -375,7 +375,12 @@ function HomeScreen({
                 </span>
               </span>
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent
+              align="start"
+              className="w-[var(--radix-select-trigger-width)]"
+              position="popper"
+              sideOffset={6}
+            >
               {farms?.map((farm) => (
                 <SelectItem key={farm.id} value={farm.id}>
                   {farm.name}
