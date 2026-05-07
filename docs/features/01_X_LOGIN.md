@@ -422,16 +422,13 @@ Sensitive credential handling:
 Required production env status:
 
 - Vercel Production has:
+  - `CONVEX_SITE_URL`
   - `CONVEX_DEPLOY_KEY`
   - `NEXT_PUBLIC_APP_URL`
-  - `NEXT_PUBLIC_CONVEX_SITE_URL`
-  - `X_REDIRECT_URI`
-  - `X_OAUTH_SCOPES`
-  - `X_APP_ID`
-  - `X_ENROLLED_ACCOUNT_ID`
+  - `NEXT_PUBLIC_CONVEX_URL` injected by the Convex deploy build wrapper, not
+    stored as a persistent Vercel env var.
 - Convex production has:
   - `NEXT_PUBLIC_APP_URL`
-  - `NEXT_PUBLIC_CONVEX_SITE_URL`
   - `X_CLIENT_ID`
   - `X_REDIRECT_URI`
   - `X_OAUTH_SCOPES`
@@ -440,6 +437,8 @@ Required production env status:
   - `X_TOKEN_ENCRYPTION_KEY`
 - Convex dev deployment has local OAuth values for localhost testing.
 - `X_CLIENT_SECRET` is not required for the current public PKCE app type.
+- Do not keep X OAuth credentials or X app/account metadata in Vercel; Convex
+  handles token exchange and token encryption.
 - X Developer Console callback URLs should match `X_REDIRECT_URI` for each
   environment.
 

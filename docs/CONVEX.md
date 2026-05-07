@@ -33,15 +33,40 @@ pnpm dev
 
 - Local env values live in ignored `.env.local`; keep `.env.example` as
   placeholders only.
+- Check local, Vercel, and Convex env names without printing secret values:
 
-Expected env names:
+```bash
+pnpm env:check
+```
+
+Expected local env names:
 
 ```bash
 CONVEX_DEPLOYMENT=
 NEXT_PUBLIC_CONVEX_URL=
-NEXT_PUBLIC_CONVEX_SITE_URL=
-CONVEX_SITE_URL= # local only; hosted Convex provides this as a built-in
+CONVEX_SITE_URL= # also used by the Next.js /callback route on Vercel
+NEXT_PUBLIC_APP_URL=
+X_CLIENT_ID=
+X_REDIRECT_URI=
+X_OAUTH_SCOPES=
+X_TOKEN_ENCRYPTION_KEY=
+```
+
+Expected Vercel Production env names:
+
+```bash
+CONVEX_SITE_URL= # server-only redirect target for app/callback/route.ts
 CONVEX_DEPLOY_KEY=
+NEXT_PUBLIC_APP_URL=
+```
+
+Do not keep X OAuth credentials, X app/account metadata, Convex deployment URLs,
+or `NEXT_PUBLIC_CONVEX_SITE_URL` in Vercel env. Vercel receives
+`NEXT_PUBLIC_CONVEX_URL` from the Convex deploy build wrapper.
+
+Expected Convex Production env names:
+
+```bash
 NEXT_PUBLIC_APP_URL=
 X_CLIENT_ID=
 X_REDIRECT_URI=
@@ -49,6 +74,14 @@ X_OAUTH_SCOPES=
 X_APP_ID=
 X_ENROLLED_ACCOUNT_ID=
 X_TOKEN_ENCRYPTION_KEY=
+```
+
+Optional Convex env names:
+
+```bash
+X_CLIENT_SECRET= # only for confidential OAuth clients
+X_BEARER_TOKEN= # optional public post metadata lookup
+X_API_BEARER_TOKEN= # optional public post metadata lookup fallback
 ```
 
 ## Production Deploys
