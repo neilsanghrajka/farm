@@ -81,7 +81,7 @@ function hasRequiredScopes(account: Doc<"accounts">) {
 }
 
 function hasUsableTokenMaterial(account: Doc<"accounts">, now: number) {
-  if (!account.accessToken) return false
+  if (!account.encryptedAccessToken) return false
   return !(account.expiresAt && account.expiresAt <= now)
 }
 
@@ -204,24 +204,16 @@ function displayTitle(post: VerifiedXPost) {
     : "X post"
 }
 
-function xBearerToken(accountAccessToken?: string | null) {
-  return (
-    process.env.X_BEARER_TOKEN ??
-    process.env.X_API_BEARER_TOKEN ??
-    accountAccessToken ??
-    null
-  )
+function xBearerToken() {
+  return process.env.X_BEARER_TOKEN ?? process.env.X_API_BEARER_TOKEN ?? null
 }
 
 function xVerificationError(): never {
   throw new ConvexError("Could not verify this X post.")
 }
 
-async function verifyXPost(
-  parsed: ParsedXPost,
-  accountAccessToken?: string | null
-): Promise<VerifiedXPost> {
-  const bearerToken = xBearerToken(accountAccessToken)
+async function verifyXPost(parsed: ParsedXPost): Promise<VerifiedXPost> {
+  const bearerToken = xBearerToken()
   if (!bearerToken) xVerificationError()
 
   const params = new URLSearchParams({
@@ -350,17 +342,18 @@ function maybeAccountSnapshot(eligibility: XEligibility) {
   return {
     accountId: eligibility.account._id,
     providerAccountId: eligibility.account.providerAccountId,
-    providerUsername: eligibility.account.username,
+    ...(eligibility.account.username
+      ? { providerUsername: eligibility.account.username }
+      : {}),
   }
 }
 
 async function createFromHomeHandler(ctx: ActionCtx, args: CreateFromHomeArgs) {
   const parsed = parseXPostUrl(args.postUrl)
-  const preflight: { accessToken: string | null } = await ctx.runQuery(
-    internal.requests.preflightCreateFromHome,
-    { farmId: args.farmId }
-  )
-  const verifiedPost = await verifyXPost(parsed, preflight.accessToken)
+  await ctx.runQuery(internal.requests.preflightCreateFromHome, {
+    farmId: args.farmId,
+  })
+  const verifiedPost = await verifyXPost(parsed)
   const result: {
     requestId: Id<"engagementRequests">
     reusedExisting: boolean
@@ -379,8 +372,8 @@ type CreateFromHomeArgs = {
 export const preflightCreateFromHome = internalQuery({
   args: { farmId: v.id("farms") },
   handler: async (ctx, args) => {
-    const { account } = await requireCreatePrereqs(ctx, args.farmId)
-    return { accessToken: account.accessToken ?? null }
+    await requireCreatePrereqs(ctx, args.farmId)
+    return {}
   },
 })
 
@@ -538,11 +531,11 @@ export const getLinkedXStatus = query({
         status: "eligible" as const,
         eligible: true,
         eligibleAccountCount,
-        username: eligible.username,
-        handle: `@${eligible.username}`,
+        username: eligible.username ?? null,
+        handle: eligible.username ? `@${eligible.username}` : null,
         account: {
           id: eligible._id,
-          username: eligible.username,
+          username: eligible.username ?? null,
           displayName: eligible.displayName ?? null,
           providerAccountId: eligible.providerAccountId,
         },
@@ -564,11 +557,11 @@ export const getLinkedXStatus = query({
       status,
       eligible: false,
       eligibleAccountCount,
-      username: account.username,
-      handle: `@${account.username}`,
+      username: account.username ?? null,
+      handle: account.username ? `@${account.username}` : null,
       account: {
         id: account._id,
-        username: account.username,
+        username: account.username ?? null,
         displayName: account.displayName ?? null,
         providerAccountId: account.providerAccountId,
         accountStatus: account.status,

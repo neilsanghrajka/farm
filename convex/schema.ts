@@ -15,6 +15,70 @@ export default defineSchema({
     .index("by_userId", ["userId"])
     .index("by_tokenIdentifier", ["tokenIdentifier"])
     .index("by_email", ["email"]),
+  accounts: defineTable({
+    userId: v.id("users"),
+    profileId: v.id("profiles"),
+    provider: v.literal("x"),
+    providerAccountId: v.string(),
+    username: v.optional(v.string()),
+    displayName: v.optional(v.string()),
+    status: v.union(
+      v.literal("linked"),
+      v.literal("needs_reconnect"),
+      v.literal("disconnected")
+    ),
+    scopes: v.array(v.string()),
+    encryptedAccessToken: v.optional(
+      v.object({
+        ciphertext: v.string(),
+        iv: v.string(),
+      })
+    ),
+    encryptedRefreshToken: v.optional(
+      v.object({
+        ciphertext: v.string(),
+        iv: v.string(),
+      })
+    ),
+    expiresAt: v.optional(v.number()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+    disconnectedAt: v.optional(v.number()),
+  })
+    .index("by_userId_and_provider", ["userId", "provider"])
+    .index("by_userId_and_provider_and_status", [
+      "userId",
+      "provider",
+      "status",
+    ])
+    .index("by_provider_and_providerAccountId", [
+      "provider",
+      "providerAccountId",
+    ])
+    .index("by_status", ["status"]),
+  xOAuthStates: defineTable({
+    state: v.string(),
+    userId: v.id("users"),
+    profileId: v.id("profiles"),
+    tokenIdentifier: v.string(),
+    codeVerifier: v.string(),
+    codeChallenge: v.string(),
+    status: v.union(
+      v.literal("pending"),
+      v.literal("completed"),
+      v.literal("expired"),
+      v.literal("failed")
+    ),
+    returnTo: v.string(),
+    error: v.optional(v.string()),
+    createdAt: v.number(),
+    expiresAt: v.number(),
+    completedAt: v.optional(v.number()),
+    updatedAt: v.number(),
+  })
+    .index("by_state", ["state"])
+    .index("by_userId_and_status", ["userId", "status"])
+    .index("by_status", ["status"]),
   farms: defineTable({
     name: v.string(),
     createdByUserId: v.id("users"),
@@ -53,41 +117,6 @@ export default defineSchema({
   })
     .index("by_code", ["code"])
     .index("by_farmId_and_status", ["farmId", "status"]),
-  accounts: defineTable({
-    userId: v.id("users"),
-    profileId: v.optional(v.id("profiles")),
-    provider: v.literal("x"),
-    providerAccountId: v.string(),
-    username: v.string(),
-    displayName: v.optional(v.string()),
-    status: v.union(
-      v.literal("linked"),
-      v.literal("needs_reconnect"),
-      v.literal("expired"),
-      v.literal("revoked"),
-      v.literal("disconnected")
-    ),
-    scopes: v.array(v.string()),
-    accessToken: v.optional(v.string()),
-    refreshToken: v.optional(v.string()),
-    tokenRef: v.optional(v.string()),
-    expiresAt: v.optional(v.number()),
-    connectedAt: v.optional(v.number()),
-    disconnectedAt: v.optional(v.number()),
-    createdAt: v.number(),
-    updatedAt: v.number(),
-  })
-    .index("by_userId_and_provider", ["userId", "provider"])
-    .index("by_userId_and_provider_and_status", [
-      "userId",
-      "provider",
-      "status",
-    ])
-    .index("by_provider_and_providerAccountId", [
-      "provider",
-      "providerAccountId",
-    ])
-    .index("by_status", ["status"]),
   engagementRequests: defineTable({
     farmId: v.id("farms"),
     requesterUserId: v.id("users"),

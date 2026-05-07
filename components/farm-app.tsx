@@ -21,11 +21,12 @@ import {
 } from "lucide-react"
 import NextLink from "next/link"
 import type * as React from "react"
-import { FormEvent, useId, useMemo, useState } from "react"
+import { FormEvent, useEffect, useId, useMemo, useState } from "react"
 
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { Alert, AlertDescription } from "@/components/ui/alert"
 import {
   Card,
   CardContent,
@@ -61,6 +62,14 @@ type LinkedXStatus = {
   username?: string | null
   handle?: string | null
 }
+
+type XAccountState =
+  | { status: "unlinked" }
+  | {
+      status: "linked" | "needs_reconnect"
+      username: string | null
+      displayName: string | null
+    }
 
 type FarmAppProps =
   | {
@@ -289,21 +298,26 @@ function HomeScreen({
           {isRequesting ? "Creating request..." : "Request likes"}
         </Button>
 
-        <Card className="py-0">
-          <CardContent className="grid grid-cols-[1fr_auto_1fr] px-0 text-sm text-muted-foreground">
-            <span className="flex items-center justify-center gap-2 px-3 py-4">
-              <UserRound className="size-5 text-primary" aria-hidden="true" />
-              {linkedXStatus
-                ? linkedAccountLabel(linkedXStatus.eligibleAccountCount)
-                : "... linked accounts ready"}
-            </span>
-            <Separator orientation="vertical" />
-            <span className="flex items-center justify-center gap-2 px-3 py-4">
-              <LockKeyhole className="size-5 text-primary" aria-hidden="true" />
-              Official X API only
-            </span>
-          </CardContent>
-        </Card>
+        {xEligible ? (
+          <Card className="py-0">
+            <CardContent className="grid grid-cols-[1fr_auto_1fr] px-0 text-sm text-muted-foreground">
+              <span className="flex items-center justify-center gap-2 px-3 py-4">
+                <UserRound className="size-5 text-primary" aria-hidden="true" />
+                {linkedXStatus
+                  ? linkedAccountLabel(linkedXStatus.eligibleAccountCount)
+                  : "... linked accounts ready"}
+              </span>
+              <Separator orientation="vertical" />
+              <span className="flex items-center justify-center gap-2 px-3 py-4">
+                <LockKeyhole
+                  className="size-5 text-primary"
+                  aria-hidden="true"
+                />
+                Official X API only
+              </span>
+            </CardContent>
+          </Card>
+        ) : null}
       </form>
 
       <RecentRequests requests={recentRequests} />
@@ -441,7 +455,61 @@ function RequestSummaryBadge({
 
 function SettingsScreen() {
   const viewer = useQuery(api.users.current)
+  const xAccount = useQuery(api.accounts.currentX)
+  const startXOAuth = useAction(api.xOAuth.start)
+  const disconnectX = useMutation(api.accounts.disconnectX)
+  const syncXStatus = useMutation(api.accounts.syncCurrentXStatus)
   const { signOut } = useAuthActions()
+  const [initialXCallbackState] = useState(getInitialXCallbackState)
+  const [isConnectingX, setIsConnectingX] = useState(false)
+  const [isDisconnectingX, setIsDisconnectingX] = useState(false)
+  const [xError, setXError] = useState<string | null>(
+    initialXCallbackState.hasError ? "Could not connect X. Try again." : null
+  )
+  const [xNotice, setXNotice] = useState<string | null>(
+    initialXCallbackState.isConnected ? "X account connected." : null
+  )
+
+  useEffect(() => {
+    if (initialXCallbackState.shouldCleanUrl) {
+      window.history.replaceState(null, "", "/settings")
+    }
+  }, [initialXCallbackState.shouldCleanUrl])
+
+  useEffect(() => {
+    if (xAccount?.status === "needs_reconnect") {
+      void syncXStatus()
+    }
+  }, [syncXStatus, xAccount?.status])
+
+  async function handleConnectX() {
+    setIsConnectingX(true)
+    setXError(null)
+    setXNotice(null)
+
+    try {
+      const result = await startXOAuth({ returnTo: "/settings" })
+      window.location.href = result.authorizationUrl
+    } catch (cause) {
+      setXError(message(cause, "Could not start X account linking."))
+      setIsConnectingX(false)
+    }
+  }
+
+  async function handleDisconnectX() {
+    setIsDisconnectingX(true)
+    setXError(null)
+    setXNotice(null)
+
+    try {
+      await disconnectX()
+      setXNotice("X account disconnected.")
+    } catch (cause) {
+      setXError(message(cause, "Could not disconnect X."))
+    } finally {
+      setIsDisconnectingX(false)
+    }
+  }
 
   return (
     <div className="space-y-8">
@@ -464,6 +532,64 @@ function SettingsScreen() {
               </span>
               <ChevronRight className="size-6 text-muted-foreground" />
             </div>
+          </CardContent>
+        </Card>
+      </section>
+
+      <section className="space-y-3">
+        <SectionLabel>Connected accounts</SectionLabel>
+        <Card className="py-0">
+          <CardContent className="px-4 py-4">
+            <div className="flex items-center gap-4">
+              <div className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-muted">
+                <XLogoMark className="size-5" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2">
+                  <h2 className="truncate text-lg font-semibold">X account</h2>
+                  <XAccountBadge status={xAccount?.status} />
+                </div>
+                <p className="mt-1 truncate text-base text-muted-foreground">
+                  {getXAccountSubtitle(xAccount)}
+                </p>
+              </div>
+              {xAccount?.status === "linked" ? (
+                <Button
+                  className="h-10 shrink-0 rounded-xl border-destructive text-destructive hover:bg-destructive/10"
+                  disabled={isDisconnectingX}
+                  onClick={() => void handleDisconnectX()}
+                  type="button"
+                  variant="outline"
+                >
+                  {isDisconnectingX ? "Disconnecting" : "Disconnect"}
+                </Button>
+              ) : (
+                <Button
+                  className="h-10 shrink-0 rounded-xl"
+                  disabled={xAccount === undefined || isConnectingX}
+                  onClick={() => void handleConnectX()}
+                  type="button"
+                >
+                  {isConnectingX
+                    ? "Connecting"
+                    : xAccount?.status === "needs_reconnect"
+                      ? "Reconnect"
+                      : "Connect"}
+                </Button>
+              )}
+            </div>
+            {xNotice ? (
+              <Alert className="mt-3 border-primary/20 bg-primary/5 text-primary">
+                <AlertDescription className="text-primary">
+                  {xNotice}
+                </AlertDescription>
+              </Alert>
+            ) : null}
+            {xError ? (
+              <Alert className="mt-3" variant="destructive">
+                <AlertDescription>{xError}</AlertDescription>
+              </Alert>
+            ) : null}
           </CardContent>
         </Card>
       </section>
@@ -1178,6 +1304,74 @@ function InitialsAvatar({
         {initials ?? makeInitials(name)}
       </AvatarFallback>
     </Avatar>
+  )
+}
+
+function XAccountBadge({
+  status,
+}: {
+  status: XAccountState["status"] | undefined
+}) {
+  if (status === undefined) {
+    return <Badge variant="secondary">Checking</Badge>
+  }
+
+  if (status === "linked") {
+    return <Badge variant="secondary">Connected</Badge>
+  }
+
+  if (status === "needs_reconnect") {
+    return <Badge variant="secondary">Reconnect</Badge>
+  }
+
+  return <Badge variant="outline">Not connected</Badge>
+}
+
+function getXAccountSubtitle(account: XAccountState | undefined) {
+  if (account === undefined) {
+    return "Checking connection"
+  }
+
+  if (account.status === "linked") {
+    return account.username ? `@${account.username}` : "Connected"
+  }
+
+  if (account.status === "needs_reconnect") {
+    return "Reconnect your X account"
+  }
+
+  return "Link your X account"
+}
+
+function getInitialXCallbackState() {
+  if (typeof window === "undefined") {
+    return {
+      hasError: false,
+      isConnected: false,
+      shouldCleanUrl: false,
+    }
+  }
+
+  const params = new URLSearchParams(window.location.search)
+  const hasError = params.has("x_error")
+  const isConnected = params.get("x_account") === "connected"
+
+  return {
+    hasError,
+    isConnected,
+    shouldCleanUrl: hasError || isConnected,
+  }
+}
+
+function XLogoMark({ className }: { className?: string }) {
+  return (
+    <svg
+      aria-hidden="true"
+      className={cn("fill-current text-foreground", className)}
+      viewBox="0 0 24 24"
+    >
+      <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24h-6.657l-5.214-6.817-5.966 6.817H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+    </svg>
   )
 }
 

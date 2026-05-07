@@ -202,6 +202,14 @@ Acceptance criteria:
 
 ## Amendments
 
+### 2026-05-07: Grand Unification Pending-Only Auto Engage
+
+Unified the X linking, Farm, Home request creation, and request-status work into
+one mainline direction. Request creation/status can ship before automatic X
+likes: created requests persist pending/skipped attempt rows, show those rows in
+request status, and leave eligible accounts pending until
+`docs/features/06_AUTO_ENGAGE.md` implements the official X like worker.
+
 ### 2026-05-07: Home Request Creation Spec
 
 Expanded `docs/features/04_HOME.md` from placeholder to the detailed Home spec.
