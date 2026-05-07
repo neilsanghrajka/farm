@@ -20,6 +20,11 @@ type InstallEnvironment = {
   standalone: boolean
 }
 
+type LegacyMediaQueryList = MediaQueryList & {
+  addListener?: (listener: () => void) => void
+  removeListener?: (listener: () => void) => void
+}
+
 const serverEnvironment: InstallEnvironment = {
   ios: false,
   standalone: false,
@@ -53,7 +58,8 @@ function getInstallEnvironment(): InstallEnvironment {
   return stableInstallEnvironment({
     ios: /iPad|iPhone|iPod/.test(userAgent) || iPadDesktopMode,
     standalone:
-      window.matchMedia("(display-mode: standalone)").matches ||
+      (typeof window.matchMedia === "function" &&
+        window.matchMedia("(display-mode: standalone)").matches) ||
       navigatorWithStandalone.standalone === true,
   })
 }
@@ -61,12 +67,30 @@ function getInstallEnvironment(): InstallEnvironment {
 function subscribeToInstallEnvironment(onStoreChange: () => void) {
   if (typeof window === "undefined") return () => {}
 
-  const displayModeQuery = window.matchMedia("(display-mode: standalone)")
-  displayModeQuery.addEventListener("change", onStoreChange)
+  const displayModeQuery: LegacyMediaQueryList | null =
+    typeof window.matchMedia === "function"
+      ? window.matchMedia("(display-mode: standalone)")
+      : null
+
+  if (displayModeQuery) {
+    if (typeof displayModeQuery.addEventListener === "function") {
+      displayModeQuery.addEventListener("change", onStoreChange)
+    } else {
+      displayModeQuery.addListener?.(onStoreChange)
+    }
+  }
+
   window.addEventListener("appinstalled", onStoreChange)
 
   return () => {
-    displayModeQuery.removeEventListener("change", onStoreChange)
+    if (displayModeQuery) {
+      if (typeof displayModeQuery.removeEventListener === "function") {
+        displayModeQuery.removeEventListener("change", onStoreChange)
+      } else {
+        displayModeQuery.removeListener?.(onStoreChange)
+      }
+    }
+
     window.removeEventListener("appinstalled", onStoreChange)
   }
 }
