@@ -25,6 +25,20 @@ const serverEnvironment: InstallEnvironment = {
   standalone: false,
 }
 
+let cachedEnvironment = serverEnvironment
+
+function stableInstallEnvironment(environment: InstallEnvironment) {
+  if (
+    cachedEnvironment.ios === environment.ios &&
+    cachedEnvironment.standalone === environment.standalone
+  ) {
+    return cachedEnvironment
+  }
+
+  cachedEnvironment = environment
+  return cachedEnvironment
+}
+
 function getInstallEnvironment(): InstallEnvironment {
   if (typeof window === "undefined") return serverEnvironment
 
@@ -36,12 +50,12 @@ function getInstallEnvironment(): InstallEnvironment {
   const iPadDesktopMode =
     platform === "MacIntel" && window.navigator.maxTouchPoints > 1
 
-  return {
+  return stableInstallEnvironment({
     ios: /iPad|iPhone|iPod/.test(userAgent) || iPadDesktopMode,
     standalone:
       window.matchMedia("(display-mode: standalone)").matches ||
       navigatorWithStandalone.standalone === true,
-  }
+  })
 }
 
 function subscribeToInstallEnvironment(onStoreChange: () => void) {
