@@ -262,13 +262,13 @@ export function LoginScreen({ children }: { children?: ReactNode }) {
 
         <div className="w-full text-center">
           <h1 className="text-[2rem] leading-tight font-semibold tracking-normal text-foreground">
-            {isProfileStep ? "Create your profile" : "Continue to Farm"}
+            {isProfileStep ? "Create your profile" : "Sign up or log in"}
           </h1>
-          <p className="mx-auto mt-4 max-w-[18rem] text-lg leading-7 text-muted-foreground">
-            {isProfileStep
-              ? "We do not recognize this email yet. Add your name to finish."
-              : "Enter your email and password to continue."}
-          </p>
+          {isProfileStep ? (
+            <p className="mx-auto mt-4 max-w-[18rem] text-lg leading-7 text-muted-foreground">
+              We do not recognize this email yet. Add your name to finish.
+            </p>
+          ) : null}
         </div>
 
         <div className="mt-6 w-full">
@@ -415,11 +415,11 @@ export function LoginScreen({ children }: { children?: ReactNode }) {
           ) : null}
         </form>
 
-        <p className="mt-8 text-center text-sm leading-6 text-muted-foreground">
-          {isProfileStep
-            ? "Use this email and password when returning to Farm."
-            : "We will ask for your name only if you are new."}
-        </p>
+        {isProfileStep ? (
+          <p className="mt-8 text-center text-sm leading-6 text-muted-foreground">
+            Use this email and password when returning to Farm.
+          </p>
+        ) : null}
       </section>
     </main>
   )
