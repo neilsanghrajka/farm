@@ -50,7 +50,7 @@ export function FarmExplainerDialog({
           alt="How Farm Works: join a farm, drop your X post link, everyone else in the farm automatically likes your tweet, and get your first 10-20 likes from your network."
           className="h-auto w-full rounded-lg"
           height={1672}
-          priority
+          sizes="min(calc(100vw - 2rem), 26rem)"
           src="/farm-how-it-works.png"
           width={941}
         />
@@ -104,7 +104,7 @@ export function FarmSafetyDialog({
           alt="Farm is safe to use: official X Likes API, no extra access, your network only, and staggered likes."
           className="h-auto w-full rounded-lg"
           height={1672}
-          priority
+          sizes="min(calc(100vw - 2rem), 26rem)"
           src="/farm-safe-to-use.png"
           width={941}
         />
