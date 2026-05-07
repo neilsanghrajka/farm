@@ -675,10 +675,10 @@ explicitly asked.
 ### Production Smoke Setup
 
 - Use the in-app Browser against `https://spcfarm.vercel.app`.
-- Use `docs/TEST_USERS.md` as the canonical inventory for reusable production
-  QA identities. AgentMail/Farm users may be provisioned there, but live X
-  smoke tests must use manually maintained, aged X test accounts.
-- Do not create ad hoc personal-user smoke data when the reusable QA triples
+- Use `docs/TEST_USERS.md` as the canonical inventory for reusable AgentMail
+  inboxes and Farm QA users. Live X smoke tests must use separately supplied,
+  manually maintained, aged X test accounts.
+- Do not create ad hoc personal-user smoke data when the reusable QA Farm users
   are available. Do not put passwords, AgentMail API keys, OAuth tokens,
   recovery codes, or magic links in tracked docs.
 - AgentMail provisioning order:
@@ -686,12 +686,13 @@ explicitly asked.
   2. Save the AgentMail API key only in ignored `.env.local`.
   3. Create or fetch the reserved `farm-auto-qa-01`, `farm-auto-qa-02`, and
      `farm-auto-qa-03` inboxes.
-  4. Use AgentMail message reads to retrieve Farm or X verification emails.
+  4. Use AgentMail message reads to retrieve Farm verification emails.
 - Production account provisioning order:
   1. Create each Farm account on `https://spcfarm.vercel.app` with its matching
      AgentMail email.
   2. Do not automate new X account creation. The AgentMail-based X signup
-     strategy failed because X blocked the fresh account.
+     strategy failed because X blocked the fresh account and should not be
+     retried by agents.
   3. Use existing aged X test accounts supplied by the user and sign into them
      manually when needed.
   4. Link each X account through Farm Settings using the existing Farm X OAuth
@@ -741,10 +742,12 @@ explicitly asked.
 - Vercel deployment did not finish.
 - Convex production deployment is not `production-eu`.
 - Browser verification cannot authenticate the QA user.
-- Reusable QA triples in `docs/TEST_USERS.md` are not fully provisioned,
-  linked, or able to receive AgentMail verification emails.
-- X signup blocks the in-app Browser flow with CAPTCHA, phone verification, or
-  abuse review.
+- Reusable Farm QA users in `docs/TEST_USERS.md` are not fully provisioned or
+  able to receive AgentMail verification emails.
+- Manually maintained aged X test accounts are not available or cannot be
+  linked through Farm Settings.
+- Manual X test-account sign-in or OAuth linking is blocked by CAPTCHA, phone
+  verification, abuse review, or another human trust step.
 
 ## Acceptance Criteria
 
@@ -778,7 +781,8 @@ explicitly asked.
 - Production E2E plan is documented and can be followed by implementation
   agents after push.
 - Production E2E references `docs/TEST_USERS.md` as the source of truth for
-  reusable AgentMail/Farm/X QA identities.
+  reusable AgentMail/Farm QA identities and the manual aged-X-account testing
+  requirement.
 
 ## Agent Handoff
 
@@ -788,7 +792,8 @@ explicitly asked.
 - Use the repo-local Convex skill for Convex implementation choices.
 - Use the X skill for endpoint, auth, and rate-limit handling.
 - Use the repo-local `$agentmail` skill and `docs/TEST_USERS.md` before creating
-  or using reusable production QA accounts. Keep credentials and AgentMail API
+  or using reusable Farm QA accounts. AgentMail is for Farm email inboxes only;
+  do not automate fresh X account creation. Keep credentials and AgentMail API
   keys only in ignored `.env.local`.
 - Use `$frontend-skill` and `$vercel:shadcn` before any frontend or shadcn UI
   changes.
