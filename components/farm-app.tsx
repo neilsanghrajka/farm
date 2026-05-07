@@ -391,7 +391,7 @@ function HomeScreen({
         {requestError ? <ErrorText>{requestError}</ErrorText> : null}
 
         <Button
-          className="h-16 w-full gap-1.5 rounded-xl px-3 text-base leading-tight font-semibold whitespace-normal sm:text-lg"
+          className="h-16 w-full gap-1.5 rounded-xl px-2 text-[0.94rem] leading-tight font-semibold whitespace-nowrap sm:text-base"
           disabled={isRequesting || (!needsXLink && !canCreateRequest)}
           onClick={needsXLink ? handleLinkXAccount : undefined}
           type={needsXLink ? "button" : "submit"}
