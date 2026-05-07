@@ -63,14 +63,19 @@ Out of scope for the initial version:
 
 ### 1. Login
 
-A signed-out user continues with one password-based flow that handles both new and returning users. New users provide a name during the same flow so Farm can identify them and associate them with Farms, connected accounts, and engagement requests.
+A signed-out user continues with one password-based flow that handles both new
+and returning users. Returning users enter email and password and go straight
+into Farm. If Farm does not recognize the account, the flow asks for the new
+user's name on a second screen before creating the profile.
 
 Detailed spec: `docs/features/00_LOGIN.md`
 
 Acceptance criteria:
 
 - A user can sign in or create an account from one combined password flow.
-- A new user can provide a name without choosing a separate signup path.
+- A returning user is not asked for their name during login.
+- A new user can provide a name on a second step without choosing a separate
+  signup path.
 - Farm does not require X linking during initial account creation.
 - After login, the user can reach the main app experience.
 
@@ -256,6 +261,12 @@ the Home header gear instead of becoming a bottom tab.
 Removed the separate missing-X setup card from Home. When X is missing,
 expired, revoked, or otherwise not eligible, the main request CTA becomes
 `Link X account` with a warning icon and routes to Settings.
+
+### 2026-05-07: Two-Step Name Capture
+
+Changed combined login/signup so the first screen asks only for email and
+password. Returning users go straight into Farm, while unknown accounts advance
+to a second screen that asks for name before signup.
 
 ### 2026-05-07: Minimum Official X Like Scopes
 

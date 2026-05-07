@@ -121,18 +121,18 @@ creates or reuses the Farm profile, and sends the user into the app.
   1. User sees the approved login screen.
   2. User enters their email.
   3. User enters their password.
-  4. User enters their name if they are new or if Farm needs a profile name.
-  5. User presses `Continue`.
-  6. System validates the form.
-  7. System submits credentials through Convex Auth.
-  8. System creates or reuses the Farm user/profile.
-  9. System lands the authenticated user on the authenticated Farm surface.
+  4. User presses `Continue`.
+  5. System validates the credentials form.
+  6. System attempts password sign-in through Convex Auth.
+  7. If the account exists, system creates or reuses the Farm user/profile and
+     lands the user on the authenticated Farm surface.
+  8. If the account is unknown, system moves to a second screen that asks for
+     the user's name, then creates the password-backed account and profile.
 - System behavior: derive identity from the auth session, not from client
   user IDs.
 - Success outcome: user reaches the app.
 - Failure outcome: user sees a concise inline error and can retry.
-  Auth errors should use generic copy that does not reveal whether an email is
-  registered.
+  Wrong-password errors should use generic copy.
 - Next destination: authenticated root/home surface.
 
 ### Secondary User Journey: Returning User
@@ -142,10 +142,9 @@ creates or reuses the Farm profile, and sends the user into the app.
 - Steps:
   1. User enters their email.
   2. User enters their password.
-  3. User leaves name empty or unchanged if the provider/profile already has it.
-  4. System authenticates the credentials.
-  5. System finds the existing Farm profile by stable auth identity.
-  6. System lands the user in Farm.
+  3. System authenticates the credentials.
+  4. System finds the existing Farm profile by stable auth identity.
+  5. System lands the user in Farm without asking for name.
 - System behavior: do not create duplicate profiles for the same stable identity.
 - Success outcome: existing profile is reused.
 - Failure outcome: expired auth step, unknown account state, or backend lookup
@@ -157,11 +156,12 @@ creates or reuses the Farm profile, and sends the user into the app.
 - Entry point: signed-out new user opens `/`.
 - User intent: create a Farm account without choosing a separate signup path.
 - Steps:
-  1. User enters email and name.
-  2. User enters and submits a password.
-  3. System creates a password-backed auth account.
-  4. System creates a Farm user/profile linked to the stable auth identity.
-  5. System lands the user in Farm.
+  1. User enters email and password.
+  2. System determines the password account is unknown.
+  3. User enters their name on the second screen.
+  4. System creates a password-backed auth account.
+  5. System creates a Farm user/profile linked to the stable auth identity.
+  6. System lands the user in Farm.
 - System behavior: name is required only for creating the first Farm profile.
 - Success outcome: one app-level profile exists for the authenticated user.
 - Failure outcome: missing name for a new profile, duplicate identity conflict,
@@ -616,6 +616,12 @@ setting.
   for this spec.
 
 ## Amendments
+
+### 2026-05-07: Two-Step Signup Name Screen
+
+Changed the combined password flow so the initial signed-out screen asks only
+for email and password. Unknown password accounts move to a second screen for
+name capture; returning users are not asked for name.
 
 ### 2026-05-06: Prompt-Format Rewrite
 

@@ -14,7 +14,11 @@ import {
 
 import { Button } from "@/components/ui/button"
 import { InstallPrompt } from "@/components/install-prompt"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 import { api } from "@/convex/_generated/api"
+
+type LoginStep = "credentials" | "profile"
 
 type LoginForm = {
   email: string
@@ -28,9 +32,8 @@ const initialForm: LoginForm = {
   name: "",
 }
 
-function getValidationError(form: LoginForm) {
+function getCredentialsValidationError(form: LoginForm) {
   const email = form.email.trim()
-  const name = form.name.trim()
 
   if (!email) {
     return "Enter your email to continue."
@@ -44,7 +47,17 @@ function getValidationError(form: LoginForm) {
     return "Enter your password to continue."
   }
 
-  if (name && form.password.length < 8) {
+  return null
+}
+
+function getProfileValidationError(form: LoginForm) {
+  const name = form.name.trim()
+
+  if (!name) {
+    return "Enter your name to create your Farm profile."
+  }
+
+  if (form.password.length < 8) {
     return "Use at least 8 characters for a new password."
   }
 
@@ -61,22 +74,29 @@ export function LoginScreen({ children }: { children?: ReactNode }) {
   const nameId = useId()
   const errorId = useId()
   const [form, setForm] = useState(initialForm)
+  const [step, setStep] = useState<LoginStep>("credentials")
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [pendingProfileName, setPendingProfileName] = useState<string | null>(
     null
   )
+  const pendingProfileNameRef = useRef<string | null>(null)
   const ensuredProfileForSession = useRef(false)
 
   useEffect(() => {
-    if (!isAuthenticated || ensuredProfileForSession.current) {
+    if (!isAuthenticated) {
+      ensuredProfileForSession.current = false
+      return
+    }
+
+    if (ensuredProfileForSession.current) {
       return
     }
 
     ensuredProfileForSession.current = true
 
     void ensureProfile({
-      name: pendingProfileName ?? undefined,
+      name: pendingProfileNameRef.current ?? pendingProfileName ?? undefined,
     })
       .catch((cause: unknown) => {
         ensuredProfileForSession.current = false
@@ -92,12 +112,26 @@ export function LoginScreen({ children }: { children?: ReactNode }) {
   function updateField(field: keyof LoginForm, value: string) {
     setForm((current) => ({ ...current, [field]: value }))
     setError(null)
+
+    if (field === "email" || field === "password") {
+      setStep("credentials")
+    }
+  }
+
+  function returnToCredentials() {
+    setStep("credentials")
+    setError(null)
+    setPendingProfileName(null)
+    pendingProfileNameRef.current = null
   }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
 
-    const validationError = getValidationError(form)
+    const validationError =
+      step === "credentials"
+        ? getCredentialsValidationError(form)
+        : getProfileValidationError(form)
 
     if (validationError) {
       setError(validationError)
@@ -110,10 +144,11 @@ export function LoginScreen({ children }: { children?: ReactNode }) {
 
     setIsSubmitting(true)
     setError(null)
-    setPendingProfileName(name || null)
 
     try {
-      if (name) {
+      if (step === "profile") {
+        pendingProfileNameRef.current = name
+        setPendingProfileName(name)
         await signIn("password", {
           email,
           password,
@@ -124,12 +159,21 @@ export function LoginScreen({ children }: { children?: ReactNode }) {
         return
       }
 
+      setPendingProfileName(null)
+      pendingProfileNameRef.current = null
       await signIn("password", {
         email,
         password,
         flow: "signIn",
       })
     } catch (cause) {
+      if (step === "credentials" && isUnknownAccountError(cause)) {
+        setStep("profile")
+        setError(null)
+        setIsSubmitting(false)
+        return
+      }
+
       setError(
         getErrorMessage(
           cause,
@@ -143,8 +187,11 @@ export function LoginScreen({ children }: { children?: ReactNode }) {
   async function handleSignOut() {
     ensuredProfileForSession.current = false
     setPendingProfileName(null)
+    pendingProfileNameRef.current = null
     await signOut()
   }
+
+  const isProfileStep = step === "profile"
 
   if (isLoading) {
     return (
@@ -215,10 +262,12 @@ export function LoginScreen({ children }: { children?: ReactNode }) {
 
         <div className="w-full text-center">
           <h1 className="text-[2rem] leading-tight font-semibold tracking-normal text-foreground">
-            Continue to Farm
+            {isProfileStep ? "Create your profile" : "Continue to Farm"}
           </h1>
           <p className="mx-auto mt-4 max-w-[18rem] text-lg leading-7 text-muted-foreground">
-            Enter your email to sign in or create your account.
+            {isProfileStep
+              ? "We do not recognize this email yet. Add your name to finish."
+              : "Enter your email and password to continue."}
           </p>
         </div>
 
@@ -231,81 +280,102 @@ export function LoginScreen({ children }: { children?: ReactNode }) {
           noValidate
           onSubmit={handleSubmit}
         >
-          <div className="flex flex-col gap-3">
-            <label
-              className="text-sm leading-none font-semibold text-foreground"
-              htmlFor={emailId}
-            >
-              Email
-            </label>
-            <div className="flex h-14 items-center gap-4 rounded-xl border border-input bg-background px-4 text-muted-foreground transition-colors focus-within:border-ring focus-within:ring-3 focus-within:ring-ring/30">
-              <Mail aria-hidden="true" className="size-6 shrink-0" />
-              <input
-                aria-describedby={error ? errorId : undefined}
-                aria-invalid={Boolean(error)}
-                autoComplete="email"
-                className="min-w-0 flex-1 bg-transparent text-lg leading-none text-foreground outline-none placeholder:text-muted-foreground"
-                id={emailId}
-                inputMode="email"
-                name="email"
-                onChange={(event) => updateField("email", event.target.value)}
-                placeholder="you@example.com"
-                type="email"
-                value={form.email}
-              />
-            </div>
-          </div>
+          {isProfileStep ? (
+            <>
+              <div className="flex flex-col gap-3">
+                <Label
+                  className="font-semibold text-foreground"
+                  htmlFor={nameId}
+                >
+                  Name
+                </Label>
+                <div className="relative">
+                  <UserRound
+                    aria-hidden="true"
+                    className="absolute top-1/2 left-4 size-6 -translate-y-1/2 text-muted-foreground"
+                  />
+                  <Input
+                    aria-describedby={error ? errorId : undefined}
+                    aria-invalid={Boolean(error)}
+                    autoComplete="name"
+                    className="h-14 rounded-xl px-12 text-lg"
+                    id={nameId}
+                    name="name"
+                    onChange={(event) =>
+                      updateField("name", event.target.value)
+                    }
+                    placeholder="Your name"
+                    type="text"
+                    value={form.name}
+                  />
+                </div>
+                <p className="text-sm leading-6 text-muted-foreground">
+                  Signing up with {form.email.trim().toLowerCase()}.
+                </p>
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="flex flex-col gap-3">
+                <Label
+                  className="font-semibold text-foreground"
+                  htmlFor={emailId}
+                >
+                  Email
+                </Label>
+                <div className="relative">
+                  <Mail
+                    aria-hidden="true"
+                    className="absolute top-1/2 left-4 size-6 -translate-y-1/2 text-muted-foreground"
+                  />
+                  <Input
+                    aria-describedby={error ? errorId : undefined}
+                    aria-invalid={Boolean(error)}
+                    autoComplete="email"
+                    className="h-14 rounded-xl px-12 text-lg"
+                    id={emailId}
+                    inputMode="email"
+                    name="email"
+                    onChange={(event) =>
+                      updateField("email", event.target.value)
+                    }
+                    placeholder="you@example.com"
+                    type="email"
+                    value={form.email}
+                  />
+                </div>
+              </div>
 
-          <div className="flex flex-col gap-3">
-            <label
-              className="text-sm leading-none font-semibold text-foreground"
-              htmlFor={passwordId}
-            >
-              Password
-            </label>
-            <div className="flex h-14 items-center gap-4 rounded-xl border border-input bg-background px-4 text-muted-foreground transition-colors focus-within:border-ring focus-within:ring-3 focus-within:ring-ring/30">
-              <LockKeyhole aria-hidden="true" className="size-6 shrink-0" />
-              <input
-                aria-describedby={error ? errorId : undefined}
-                aria-invalid={Boolean(error)}
-                autoComplete="current-password"
-                className="min-w-0 flex-1 bg-transparent text-lg leading-none text-foreground outline-none placeholder:text-muted-foreground"
-                id={passwordId}
-                name="password"
-                onChange={(event) =>
-                  updateField("password", event.target.value)
-                }
-                placeholder="Your password"
-                type="password"
-                value={form.password}
-              />
-            </div>
-          </div>
-
-          <div className="flex flex-col gap-3">
-            <label
-              className="text-sm leading-none font-semibold text-foreground"
-              htmlFor={nameId}
-            >
-              Name
-            </label>
-            <div className="flex h-14 items-center gap-4 rounded-xl border border-input bg-background px-4 text-muted-foreground transition-colors focus-within:border-ring focus-within:ring-3 focus-within:ring-ring/30">
-              <UserRound aria-hidden="true" className="size-6 shrink-0" />
-              <input
-                autoComplete="name"
-                className="min-w-0 flex-1 bg-transparent text-lg leading-none text-foreground outline-none placeholder:text-muted-foreground"
-                id={nameId}
-                name="name"
-                onChange={(event) => updateField("name", event.target.value)}
-                placeholder="Your name (optional)"
-                type="text"
-                value={form.name}
-              />
-            </div>
-            <p className="text-sm leading-6 text-muted-foreground">
-              We will ask only if this is your first time.
-            </p>
-          </div>
+              <div className="flex flex-col gap-3">
+                <Label
+                  className="font-semibold text-foreground"
+                  htmlFor={passwordId}
+                >
+                  Password
+                </Label>
+                <div className="relative">
+                  <LockKeyhole
+                    aria-hidden="true"
+                    className="absolute top-1/2 left-4 size-6 -translate-y-1/2 text-muted-foreground"
+                  />
+                  <Input
+                    aria-describedby={error ? errorId : undefined}
+                    aria-invalid={Boolean(error)}
+                    autoComplete="current-password"
+                    className="h-14 rounded-xl px-12 text-lg"
+                    id={passwordId}
+                    name="password"
+                    onChange={(event) =>
+                      updateField("password", event.target.value)
+                    }
+                    placeholder="Your password"
+                    type="password"
+                    value={form.password}
+                  />
+                </div>
+              </div>
+            </>
+          )}
 
           <div className="min-h-5">
             {error ? (
@@ -325,33 +395,65 @@ export function LoginScreen({ children }: { children?: ReactNode }) {
             size="lg"
             type="submit"
           >
-            {isSubmitting ? "Continuing..." : "Continue"}
+            {isSubmitting
+              ? "Continuing..."
+              : isProfileStep
+                ? "Create account"
+                : "Continue"}
           </Button>
+
+          {isProfileStep ? (
+            <Button
+              className="h-12 w-full rounded-xl"
+              disabled={isSubmitting}
+              onClick={returnToCredentials}
+              type="button"
+              variant="outline"
+            >
+              Back
+            </Button>
+          ) : null}
         </form>
 
         <p className="mt-8 text-center text-sm leading-6 text-muted-foreground">
-          Use the same email when returning to Farm.
+          {isProfileStep
+            ? "Use this email and password when returning to Farm."
+            : "We will ask for your name only if you are new."}
         </p>
       </section>
     </main>
   )
 }
 
+function isUnknownAccountError(cause: unknown) {
+  return getCauseMessage(cause).includes("InvalidAccountId")
+}
+
+function getCauseMessage(cause: unknown) {
+  return cause instanceof Error ? cause.message : ""
+}
+
 function getErrorMessage(cause: unknown, fallback: string) {
-  if (cause instanceof Error && cause.message) {
-    if (cause.message.includes("Invalid credentials")) {
+  const message = getCauseMessage(cause)
+
+  if (message) {
+    if (message.includes("Invalid credentials")) {
       return "Could not continue. Check your details and try again."
     }
 
-    if (cause.message.includes("Invalid password")) {
+    if (message.includes("Invalid password")) {
       return "Use at least 8 characters for your password."
     }
 
-    if (cause.message.includes("InvalidAccountId")) {
+    if (message.includes("InvalidAccountId")) {
       return "Could not continue. Check your details and try again."
     }
 
-    return cause.message
+    if (message.includes("InvalidSecret")) {
+      return "Could not continue. Check your details and try again."
+    }
+
+    return message
   }
 
   return fallback
