@@ -57,8 +57,6 @@ using that linked state to gate engagement actions in the app.
 
 - Base app reference mocks:
   - `docs/mocks/ask-engagement.png`
-  - `docs/mocks/settings-account.png`
-  - `docs/mocks/farm-management.png`
   - `docs/mocks/request-status.png`
 - Approved X linking implementation mocks:
   - `docs/mocks/01_X_LOGIN/home-missing-x.png`

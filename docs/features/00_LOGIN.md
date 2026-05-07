@@ -51,9 +51,8 @@ when creating a new profile, authenticate, and land in Farm.
 ## Design
 
 - Approved mock: `docs/mocks/00_LOGIN/login-screen.png`
-- Reference mocks: `docs/mocks/settings-account.png`,
-  `docs/mocks/farm-management.png`, `docs/mocks/request-status.png`,
-  `docs/mocks/ask-engagement.png`
+- Reference mocks: `docs/mocks/ask-engagement.png` and
+  `docs/mocks/request-status.png` for the shared mobile app shell.
 
 ![Login screen mock](../mocks/00_LOGIN/login-screen.png)
 

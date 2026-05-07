@@ -62,16 +62,6 @@ joining.
 
 ## Design
 
-### Existing Reference Mocks
-
-- Primary Farm detail reference: `docs/mocks/farm-management.png`
-- Home reference: `docs/mocks/ask-engagement.png`
-- Settings reference: `docs/mocks/settings-account.png`
-- Request status reference for downstream navigation:
-  `docs/mocks/request-status.png`
-
-![Farm management reference mock](../mocks/farm-management.png)
-
 ### Approved Farm Mocks
 
 The Farm mock packet was generated and approved by the user on 2026-05-06.
@@ -110,7 +100,8 @@ The approved sheets cover this screen packet:
    - Secondary action: back/cancel.
    - Success routes to Farm detail with the join link visible.
 4. `farm-detail-admin.png`
-   - Based on `docs/mocks/farm-management.png`.
+   - Based on the admin Farm detail state in
+     `docs/mocks/03_FARM/farm-flow-main.png`.
    - Header shows Farm name, privacy, member count, and `Admin`.
    - Invite area is renamed from `Invite members` to `Share join link`.
    - No invite-member form.
@@ -181,8 +172,8 @@ and no marketing chrome.
   surfaces: `bg-background`, `text-foreground`, `bg-card`, `border-border`,
   `text-muted-foreground`, `bg-primary`, `text-primary-foreground`,
   `text-destructive`, and `ring-ring`.
-- The Farm icon tile from `docs/mocks/farm-management.png` remains the reference
-  for Farm detail.
+- The Farm icon tile from `docs/mocks/03_FARM/farm-flow-main.png` remains the
+  reference for Farm detail.
 - The invite area becomes `Share join link` and does not branch into a separate
   invite-member flow.
 - Admin and member views use the same detail layout. Admin-only actions appear

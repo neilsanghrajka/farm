@@ -204,7 +204,7 @@ Include:
 Example:
 
 - Approved mock: `docs/mocks/00_LOGIN/login-screen.png`
-- Reference mocks: `docs/mocks/settings-account.png`
+- Reference mocks: `docs/mocks/ask-engagement.png`
 
 ## Product Requirements
 

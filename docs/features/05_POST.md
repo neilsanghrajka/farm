@@ -83,7 +83,8 @@ asked my Farm to like this post?"
 
 - Primary request status reference: `docs/mocks/request-status.png`
 - Home reference for recent request entry: `docs/mocks/ask-engagement.png`
-- Farm detail reference for member row density: `docs/mocks/farm-management.png`
+- Farm/member row density reference:
+  `docs/mocks/03_FARM/farm-flow-main.png`
 
 ![Request status reference mock](../mocks/request-status.png)
 

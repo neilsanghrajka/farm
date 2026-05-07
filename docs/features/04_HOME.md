@@ -101,10 +101,10 @@ Farm to like it through connected X accounts.
 - Primary Home mock: `docs/mocks/ask-engagement.png`
 - Missing-X Home mock from X linking: `docs/mocks/01_X_LOGIN/home-missing-x.png`
 - Request status destination mock: `docs/mocks/request-status.png`
-- Farm detail/navigation mock: `docs/mocks/farm-management.png`
 - Farm flow mock packet: `docs/mocks/03_FARM/farm-flow-main.png` and
   `docs/mocks/03_FARM/farm-flow-confirmations.png`
-- Settings account/X entry reference: `docs/mocks/settings-account.png` and
+- Settings account/X entry reference:
+  `docs/mocks/01_X_LOGIN/settings-x-unlinked.png` and
   `docs/mocks/01_X_LOGIN/settings-x-linked.png`
 
 ![Home request engagement mock](../mocks/ask-engagement.png)
