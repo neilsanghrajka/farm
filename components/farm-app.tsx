@@ -34,6 +34,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
+import { Checkbox } from "@/components/ui/checkbox"
 import {
   Dialog,
   DialogClose,
@@ -55,6 +56,8 @@ import { Separator } from "@/components/ui/separator"
 import { api } from "@/convex/_generated/api"
 import type { Id } from "@/convex/_generated/dataModel"
 import { cn } from "@/lib/utils"
+
+const X_LINK_CONSENT_HIDDEN_KEY = "farm:x-link-consent-hidden"
 
 type Role = "admin" | "member"
 type FarmSummary = {
@@ -682,6 +685,7 @@ function SettingsScreen() {
   const [isConnectingX, setIsConnectingX] = useState(false)
   const [isDisconnectingX, setIsDisconnectingX] = useState(false)
   const [isXConsentOpen, setIsXConsentOpen] = useState(false)
+  const [hideXConsentNextTime, setHideXConsentNextTime] = useState(false)
   const [xError, setXError] = useState<string | null>(
     initialXCallbackState.hasError ? "Could not connect X. Try again." : null
   )
@@ -701,7 +705,25 @@ function SettingsScreen() {
     }
   }, [syncXStatus, xAccount?.status])
 
+  function shouldSkipXConsent() {
+    if (typeof window === "undefined") return false
+    return window.localStorage.getItem(X_LINK_CONSENT_HIDDEN_KEY) === "true"
+  }
+
+  function handleOpenXLink() {
+    if (shouldSkipXConsent()) {
+      void handleConnectX()
+      return
+    }
+
+    setHideXConsentNextTime(false)
+    setIsXConsentOpen(true)
+  }
+
   async function handleConnectX() {
+    if (hideXConsentNextTime && typeof window !== "undefined") {
+      window.localStorage.setItem(X_LINK_CONSENT_HIDDEN_KEY, "true")
+    }
     setIsConnectingX(true)
     setXError(null)
     setXNotice(null)
@@ -784,7 +806,7 @@ function SettingsScreen() {
                 <Button
                   className="h-10 shrink-0 rounded-xl"
                   disabled={xAccount === undefined || isConnectingX}
-                  onClick={() => setIsXConsentOpen(true)}
+                  onClick={handleOpenXLink}
                   type="button"
                 >
                   {isConnectingX
@@ -804,30 +826,40 @@ function SettingsScreen() {
               }}
             >
               <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Review X access</DialogTitle>
+                <DialogHeader className="items-center text-center">
+                  <div className="flex size-12 items-center justify-center rounded-xl bg-muted">
+                    <XLogoMark className="size-5" />
+                  </div>
+                  <DialogTitle>Connect X</DialogTitle>
                   <DialogDescription>
-                    Farm will send you to X&apos;s official API authorization
-                    page.
+                    Farm will send you to X to approve access.
                   </DialogDescription>
                 </DialogHeader>
                 <div className="space-y-3 text-sm leading-6 text-muted-foreground">
+                  <p>Farm uses only official X APIs.</p>
                   <p>
-                    Farm asks for permission to identify the X account you link,
-                    like and unlike X posts for you, and stay connected so you
-                    do not have to relink every session.
+                    Farm can like or unlike only the X post links you submit in
+                    Farm.
                   </p>
                   <p>
-                    X requires read scopes for the user-context like flow. Farm
-                    uses them only to identify your linked X account and like or
-                    unlike post URLs you submit. We do not request DM, follow,
-                    bookmark, email, password, or arbitrary posting access.
+                    Farm uses your X connection only for that action and to
+                    remember the account you linked.
                   </p>
                   <p>
-                    On X, you should see Farm App requesting access before you
-                    approve.
+                    Farm cannot read your DMs, follow people, see your password,
+                    or post anything new.
                   </p>
                 </div>
+                <label className="flex items-center gap-3 text-sm text-muted-foreground">
+                  <Checkbox
+                    checked={hideXConsentNextTime}
+                    disabled={isConnectingX}
+                    onCheckedChange={(checked) =>
+                      setHideXConsentNextTime(checked === true)
+                    }
+                  />
+                  <span>Don&apos;t show this again</span>
+                </label>
                 <DialogFooter>
                   <DialogClose asChild>
                     <Button
