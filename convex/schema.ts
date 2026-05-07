@@ -28,8 +28,18 @@ export default defineSchema({
       v.literal("disconnected")
     ),
     scopes: v.array(v.string()),
-    accessToken: v.optional(v.string()),
-    refreshToken: v.optional(v.string()),
+    encryptedAccessToken: v.optional(
+      v.object({
+        ciphertext: v.string(),
+        iv: v.string(),
+      })
+    ),
+    encryptedRefreshToken: v.optional(
+      v.object({
+        ciphertext: v.string(),
+        iv: v.string(),
+      })
+    ),
     expiresAt: v.optional(v.number()),
     createdAt: v.number(),
     updatedAt: v.number(),

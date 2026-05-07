@@ -56,13 +56,8 @@ function publicAccountState(account: Doc<"accounts"> | null) {
 
   return {
     status,
-    provider: account.provider,
-    providerAccountId: account.providerAccountId,
     username: account.username ?? null,
     displayName: account.displayName ?? null,
-    scopes: account.scopes,
-    expiresAt: account.expiresAt ?? null,
-    updatedAt: account.updatedAt,
   }
 }
 
@@ -110,9 +105,43 @@ export const disconnectX = mutation({
       disconnectedAt: now,
       ...(account.username ? { username: account.username } : {}),
       ...(account.displayName ? { displayName: account.displayName } : {}),
+      ...(account.expiresAt ? { expiresAt: account.expiresAt } : {}),
     })
 
     return { status: "unlinked" as const }
+  },
+})
+
+export const syncCurrentXStatus = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const viewer = await getAuthenticatedViewer(ctx)
+    const account = await ctx.db
+      .query("accounts")
+      .withIndex("by_userId_and_provider", (q) =>
+        q.eq("userId", viewer.userId).eq("provider", "x")
+      )
+      .unique()
+
+    if (
+      account &&
+      account.status === "linked" &&
+      typeof account.expiresAt === "number" &&
+      account.expiresAt <= Date.now()
+    ) {
+      await ctx.db.patch(account._id, {
+        status: "needs_reconnect",
+        updatedAt: Date.now(),
+      })
+
+      return {
+        status: "needs_reconnect" as const,
+        username: account.username ?? null,
+        displayName: account.displayName ?? null,
+      }
+    }
+
+    return publicAccountState(account)
   },
 })
 
@@ -238,8 +267,16 @@ export const completeXOAuth = internalMutation({
     username: v.optional(v.string()),
     displayName: v.optional(v.string()),
     scopes: v.array(v.string()),
-    accessToken: v.string(),
-    refreshToken: v.optional(v.string()),
+    encryptedAccessToken: v.object({
+      ciphertext: v.string(),
+      iv: v.string(),
+    }),
+    encryptedRefreshToken: v.optional(
+      v.object({
+        ciphertext: v.string(),
+        iv: v.string(),
+      })
+    ),
     expiresAt: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
@@ -292,13 +329,15 @@ export const completeXOAuth = internalMutation({
       providerAccountId: args.providerAccountId,
       status: "linked" as const,
       scopes: args.scopes,
-      accessToken: args.accessToken,
+      encryptedAccessToken: args.encryptedAccessToken,
       createdAt:
         existingForUser?.createdAt ?? existingForXAccount?.createdAt ?? now,
       updatedAt: now,
       ...(args.username ? { username: args.username } : {}),
       ...(args.displayName ? { displayName: args.displayName } : {}),
-      ...(args.refreshToken ? { refreshToken: args.refreshToken } : {}),
+      ...(args.encryptedRefreshToken
+        ? { encryptedRefreshToken: args.encryptedRefreshToken }
+        : {}),
       ...(typeof args.expiresAt === "number"
         ? { expiresAt: args.expiresAt }
         : {}),

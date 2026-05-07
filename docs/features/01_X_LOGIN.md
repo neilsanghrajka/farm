@@ -330,8 +330,8 @@ Recommended account fields:
 - `displayName`: X display name when available.
 - `status`: `"linked" | "needs_reconnect" | "disconnected"`.
 - `scopes`: granted OAuth scopes.
-- `accessToken`: encrypted or otherwise protected token material.
-- `refreshToken`: encrypted or otherwise protected token material when issued.
+- `encryptedAccessToken`: AES-GCM encrypted token material.
+- `encryptedRefreshToken`: AES-GCM encrypted token material when issued.
 - `expiresAt`: token expiry timestamp when applicable.
 - `createdAt`, `updatedAt`, `disconnectedAt`.
 
@@ -358,6 +358,8 @@ Backend requirements:
 - Validate OAuth state before exchanging tokens.
 - Store only the minimum X account metadata needed by the product.
 - Keep token material server-side only.
+- Encrypt token material before storing it in Convex with
+  `X_TOKEN_ENCRYPTION_KEY`.
 - Return redacted account state to the client.
 - Do not expose `X_CLIENT_SECRET`, access tokens, refresh tokens, or raw OAuth
   responses to the browser.
@@ -439,6 +441,7 @@ Current production env status as of 2026-05-07:
   - `X_OAUTH_SCOPES`
   - `X_APP_ID`
   - `X_ENROLLED_ACCOUNT_ID`
+  - `X_TOKEN_ENCRYPTION_KEY`
 - Convex dev deployment `superb-oyster-941` has local OAuth values for
   localhost testing.
 - `X_CLIENT_SECRET` is not required for the current public PKCE app type.
@@ -457,12 +460,13 @@ Required dashboard / env setup before build:
    `https://spcfarm.vercel.app/callback`.
 4. Open app `32883674` -> `Keys & Tokens`.
 5. Confirm OAuth 2.0 `X_CLIENT_ID` is set on Convex.
-6. Set `X_CLIENT_SECRET` on Convex only if the X app is changed from Native App
+6. Confirm `X_TOKEN_ENCRYPTION_KEY` is set on Convex.
+7. Set `X_CLIENT_SECRET` on Convex only if the X app is changed from Native App
    to a confidential client type.
-7. Use Vercel CLI and Convex CLI for env updates whenever possible. Use Dia only
+8. Use Vercel CLI and Convex CLI for env updates whenever possible. Use Dia only
    for X dashboard actions that do not have a CLI.
-8. Do not commit, print, or paste the client secret into docs, code, logs, or
-   chat.
+9. Do not commit, print, or paste the client secret or token encryption key into
+   docs, code, logs, or chat.
 
 Known working OAuth flow:
 
@@ -542,7 +546,8 @@ Implementation agents should verify:
   - `pnpm exec convex run health:ping`.
 - Confirm env/config before OAuth testing:
   - `X_CLIENT_ID` is set in the runtime handling OAuth.
-  - `X_CLIENT_SECRET` is set in the runtime handling OAuth.
+  - `X_CLIENT_SECRET` is set only if using a confidential X client.
+  - `X_TOKEN_ENCRYPTION_KEY` is set in the runtime handling OAuth.
   - `X_REDIRECT_URI` matches an allowed X Developer Console callback.
   - `X_OAUTH_SCOPES` contains
     `tweet.read users.read like.write offline.access`.

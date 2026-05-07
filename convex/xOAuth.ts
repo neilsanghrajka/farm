@@ -24,14 +24,19 @@ type XMeResponse = {
   }
 }
 
+type EncryptedToken = {
+  ciphertext: string
+  iv: string
+}
+
 type CompleteXOAuthArgs = {
   state: string
   providerAccountId: string
   username?: string
   displayName?: string
   scopes: string[]
-  accessToken: string
-  refreshToken?: string
+  encryptedAccessToken: EncryptedToken
+  encryptedRefreshToken?: EncryptedToken
   expiresAt?: number
 }
 
@@ -137,7 +142,7 @@ export const handleXOAuthCallback = httpAction(async (ctx, request) => {
       state,
       providerAccountId,
       scopes: normalizeScopes(token.scope ?? process.env.X_OAUTH_SCOPES),
-      accessToken: token.access_token,
+      encryptedAccessToken: await encryptToken(token.access_token),
     }
 
     if (xUser.data?.username) {
@@ -149,7 +154,9 @@ export const handleXOAuthCallback = httpAction(async (ctx, request) => {
     }
 
     if (token.refresh_token) {
-      completeArgs.refreshToken = token.refresh_token
+      completeArgs.encryptedRefreshToken = await encryptToken(
+        token.refresh_token
+      )
     }
 
     if (typeof token.expires_in === "number") {
@@ -222,6 +229,50 @@ function base64UrlEncode(bytes: Uint8Array) {
   }
 
   return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "")
+}
+
+function base64UrlDecode(value: string) {
+  const normalized = value.replace(/-/g, "+").replace(/_/g, "/")
+  const padded = normalized.padEnd(
+    normalized.length + ((4 - (normalized.length % 4)) % 4),
+    "="
+  )
+  const binary = atob(padded)
+  const bytes = new Uint8Array(binary.length)
+
+  for (let index = 0; index < binary.length; index += 1) {
+    bytes[index] = binary.charCodeAt(index)
+  }
+
+  return bytes
+}
+
+async function encryptToken(token: string): Promise<EncryptedToken> {
+  const rawKey = base64UrlDecode(getRequiredEnv("X_TOKEN_ENCRYPTION_KEY"))
+
+  if (rawKey.byteLength !== 32) {
+    throw new ConvexError("X token encryption is not configured correctly.")
+  }
+
+  const key = await crypto.subtle.importKey(
+    "raw",
+    rawKey,
+    { name: "AES-GCM" },
+    false,
+    ["encrypt"]
+  )
+  const iv = new Uint8Array(12)
+  crypto.getRandomValues(iv)
+  const ciphertext = await crypto.subtle.encrypt(
+    { name: "AES-GCM", iv },
+    key,
+    new TextEncoder().encode(token)
+  )
+
+  return {
+    ciphertext: base64UrlEncode(new Uint8Array(ciphertext)),
+    iv: base64UrlEncode(iv),
+  }
 }
 
 async function exchangeCodeForToken(code: string, codeVerifier: string) {

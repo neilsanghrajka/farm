@@ -95,6 +95,7 @@ export function FarmApp(props: FarmAppProps) {
 function HomeScreen() {
   const farms = useQuery(api.farms.listMine)
   const xAccount = useQuery(api.accounts.currentX)
+  const syncXStatus = useMutation(api.accounts.syncCurrentXStatus)
   const firstFarmHref =
     farms && farms.length > 0 ? `/farms/${farms[0].id}` : "/farms"
   const isXLoading = xAccount === undefined
@@ -104,6 +105,12 @@ function HomeScreen() {
   const setupActionLabel = needsReconnect
     ? "Reconnect X account"
     : "Connect X account"
+
+  useEffect(() => {
+    if (xAccount?.status === "needs_reconnect") {
+      void syncXStatus()
+    }
+  }, [syncXStatus, xAccount?.status])
 
   return (
     <div className="flex min-h-[calc(100svh-4rem)] flex-col gap-8">
@@ -247,6 +254,7 @@ function SettingsScreen() {
   const xAccount = useQuery(api.accounts.currentX)
   const startXOAuth = useAction(api.xOAuth.start)
   const disconnectX = useMutation(api.accounts.disconnectX)
+  const syncXStatus = useMutation(api.accounts.syncCurrentXStatus)
   const { signOut } = useAuthActions()
   const [initialXCallbackState] = useState(getInitialXCallbackState)
   const [isConnectingX, setIsConnectingX] = useState(false)
@@ -263,6 +271,12 @@ function SettingsScreen() {
       window.history.replaceState(null, "", "/settings")
     }
   }, [initialXCallbackState.shouldCleanUrl])
+
+  useEffect(() => {
+    if (xAccount?.status === "needs_reconnect") {
+      void syncXStatus()
+    }
+  }, [syncXStatus, xAccount?.status])
 
   async function handleConnectX() {
     setIsConnectingX(true)
