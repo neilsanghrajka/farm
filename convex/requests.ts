@@ -80,18 +80,17 @@ function hasRequiredScopes(account: { scopes: string[] }) {
   return requiredXScopes.every((scope) => account.scopes.includes(scope))
 }
 
-function hasUsableTokenMaterial(account: Doc<"accounts">, now: number) {
-  if (!account.encryptedAccessToken) return false
-  return !(account.expiresAt && account.expiresAt <= now)
+function hasUsableTokenMaterial(account: Doc<"accounts">) {
+  return Boolean(account.encryptedAccessToken && account.encryptedRefreshToken)
 }
 
-function isEligibleXAccount(account: Doc<"accounts">, now: number) {
+function isEligibleXAccount(account: Doc<"accounts">) {
   return (
     account.provider === "x" &&
     account.status === "linked" &&
     !account.disconnectedAt &&
     hasRequiredScopes(account) &&
-    hasUsableTokenMaterial(account, now)
+    hasUsableTokenMaterial(account)
   )
 }
 
@@ -109,11 +108,10 @@ async function xAccountsForUser(
 
 async function xEligibilityForUser(
   ctx: QueryCtx | MutationCtx,
-  userId: Id<"users">,
-  now: number
+  userId: Id<"users">
 ): Promise<XEligibility> {
   const accounts = await xAccountsForUser(ctx, userId)
-  const eligible = accounts.find((account) => isEligibleXAccount(account, now))
+  const eligible = accounts.find((account) => isEligibleXAccount(account))
 
   if (eligible) return { status: "eligible", account: eligible }
   if (accounts.length === 0) return { status: "missing" }
@@ -297,6 +295,56 @@ function visibleStatus(status: Doc<"engagementAttempts">["status"]) {
   return status
 }
 
+async function visibleAttemptCounts(
+  ctx: QueryCtx,
+  request: Doc<"engagementRequests">
+) {
+  const attempts = []
+  for await (const attempt of ctx.db
+    .query("engagementAttempts")
+    .withIndex("by_requestId_and_status", (q) =>
+      q.eq("requestId", request._id)
+    )) {
+    attempts.push(attempt)
+  }
+  const targetAttempts = attempts.filter(
+    (attempt) => attempt.userId !== request.requesterUserId
+  )
+  const likedCount = targetAttempts.filter(
+    (attempt) =>
+      attempt.status === "liked" || attempt.status === "already_liked"
+  ).length
+  const pendingCount = targetAttempts.filter(
+    (attempt) =>
+      attempt.status === "pending" || attempt.status === "failed_retryable"
+  ).length
+  const skippedCount = targetAttempts.filter(
+    (attempt) =>
+      attempt.status === "skipped_no_x" ||
+      attempt.status === "skipped_ineligible" ||
+      attempt.status === "skipped_not_selected" ||
+      attempt.status === "skipped_cap_exceeded" ||
+      attempt.status === "skipped_post_unavailable" ||
+      attempt.status === "skipped_canceled"
+  ).length
+  const failedCount = targetAttempts.filter(
+    (attempt) => attempt.status === "failed_final"
+  ).length
+  const selectedAttemptCount = targetAttempts.filter(
+    (attempt) => attempt.selectionStatus === "selected"
+  ).length
+
+  return {
+    targetAttempts,
+    likedCount,
+    pendingCount,
+    skippedCount,
+    failedCount,
+    selectedAttemptCount,
+    targetMemberCount: targetAttempts.length,
+  }
+}
+
 const createArgs = {
   farmId: v.id("farms"),
   postUrl: v.string(),
@@ -326,7 +374,7 @@ async function requireCreatePrereqs(
     throw new ConvexError("You are not a member of this Farm.")
   }
 
-  const eligibility = await xEligibilityForUser(ctx, current.userId, Date.now())
+  const eligibility = await xEligibilityForUser(ctx, current.userId)
   if (eligibility.status !== "eligible") {
     throw new ConvexError("Connect your X account before requesting likes.")
   }
@@ -415,14 +463,17 @@ export const createVerifiedFromHome = internalMutation({
     }
 
     const members = await activeMembers(ctx, farm._id)
+    const targetMembers = members.filter(
+      (member) => member.userId !== current.userId
+    )
     const now = Date.now()
     const engagementDeadlineAt = now + 6 * 60 * 60 * 1000
     const attempts: AttemptSnapshot[] = []
     let pendingCount = 0
     let skippedCount = 0
 
-    for (const member of members) {
-      const eligibility = await xEligibilityForUser(ctx, member.userId, now)
+    for (const member of targetMembers) {
+      const eligibility = await xEligibilityForUser(ctx, member.userId)
       let status: AttemptSnapshot["status"]
       if (eligibility.status === "eligible") {
         status = "pending"
@@ -468,7 +519,7 @@ export const createVerifiedFromHome = internalMutation({
       autoEngageStatus: pendingCount > 0 ? "active" : "completed",
       selectedAttemptCount: 0,
       maxSelectedAttempts: 50,
-      targetMemberCount: members.length,
+      targetMemberCount: targetMembers.length,
       likedCount: 0,
       pendingCount,
       skippedCount,
@@ -540,11 +591,8 @@ export const getLinkedXStatus = query({
       }
     }
 
-    const now = Date.now()
     const accounts = await xAccountsForUser(ctx, current.userId)
-    const eligible = accounts.find((account) =>
-      isEligibleXAccount(account, now)
-    )
+    const eligible = accounts.find((account) => isEligibleXAccount(account))
     let eligibleAccountCount = eligible ? 1 : 0
 
     if (args.farmId) {
@@ -557,11 +605,8 @@ export const getLinkedXStatus = query({
         const members = await activeMembers(ctx, args.farmId)
         eligibleAccountCount = 0
         for (const member of members) {
-          const memberEligibility = await xEligibilityForUser(
-            ctx,
-            member.userId,
-            now
-          )
+          if (member.userId === current.userId) continue
+          const memberEligibility = await xEligibilityForUser(ctx, member.userId)
           if (memberEligibility.status === "eligible") {
             eligibleAccountCount += 1
           }
@@ -636,15 +681,10 @@ export const get = query({
     const canManageAutoEngage =
       request.requesterUserId === current.userId ||
       viewerMembership.role === "admin"
-    const attempts = await ctx.db
-      .query("engagementAttempts")
-      .withIndex("by_requestId_and_status", (q) =>
-        q.eq("requestId", request._id)
-      )
-      .take(100)
+    const counts = await visibleAttemptCounts(ctx, request)
 
     const outcomes = []
-    for (const attempt of attempts) {
+    for (const attempt of counts.targetAttempts) {
       const profile = await ctx.db.get(attempt.profileId)
       if (!profile) continue
       outcomes.push({
@@ -686,13 +726,14 @@ export const get = query({
         engagementDeadlineAt: request.engagementDeadlineAt ?? null,
         autoEngageStatus: request.autoEngageStatus ?? null,
         stopReason: request.stopReason ?? null,
-        selectedAttemptCount: request.selectedAttemptCount ?? null,
+        selectedAttemptCount:
+          counts.selectedAttemptCount > 0 ? counts.selectedAttemptCount : null,
         canManageAutoEngage,
-        targetMemberCount: request.targetMemberCount,
-        likedCount: request.likedCount,
-        pendingCount: request.pendingCount,
-        skippedCount: request.skippedCount,
-        failedCount: request.failedCount,
+        targetMemberCount: counts.targetMemberCount,
+        likedCount: counts.likedCount,
+        pendingCount: counts.pendingCount,
+        skippedCount: counts.skippedCount,
+        failedCount: counts.failedCount,
         createdAt: request.createdAt,
         updatedAt: request.updatedAt,
       },
@@ -742,6 +783,7 @@ export const listMine = query({
         .take(3)
 
       for (const request of requests) {
+        const counts = await visibleAttemptCounts(ctx, request)
         summaries.push({
           id: request._id,
           farmId: farm._id,
@@ -749,9 +791,9 @@ export const listMine = query({
           postTitle: request.postTitle ?? "X post",
           postUrl: request.postUrl,
           status: request.status,
-          likedCount: request.likedCount,
-          pendingCount: request.pendingCount,
-          targetMemberCount: request.targetMemberCount,
+          likedCount: counts.likedCount,
+          pendingCount: counts.pendingCount,
+          targetMemberCount: counts.targetMemberCount,
           createdAt: request.createdAt,
         })
       }
@@ -775,15 +817,21 @@ export const listForFarm = query({
       .order("desc")
       .take(50)
 
-    return requests.map((request) => ({
-      id: request._id,
-      postTitle: request.postTitle ?? "X post",
-      postUrl: request.postUrl,
-      status: request.status,
-      likedCount: request.likedCount,
-      pendingCount: request.pendingCount,
-      targetMemberCount: request.targetMemberCount,
-      createdAt: request.createdAt,
-    }))
+    const summaries = []
+    for (const request of requests) {
+      const counts = await visibleAttemptCounts(ctx, request)
+      summaries.push({
+        id: request._id,
+        postTitle: request.postTitle ?? "X post",
+        postUrl: request.postUrl,
+        status: request.status,
+        likedCount: counts.likedCount,
+        pendingCount: counts.pendingCount,
+        targetMemberCount: counts.targetMemberCount,
+        createdAt: request.createdAt,
+      })
+    }
+
+    return summaries
   },
 })

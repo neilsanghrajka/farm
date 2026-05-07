@@ -50,7 +50,8 @@ function publicAccountState(account: Doc<"accounts"> | null) {
   const hasExpired =
     account.status === "linked" &&
     typeof account.expiresAt === "number" &&
-    account.expiresAt <= Date.now()
+    account.expiresAt <= Date.now() &&
+    !account.encryptedRefreshToken
 
   const status = hasExpired ? "needs_reconnect" : account.status
 
@@ -127,7 +128,8 @@ export const syncCurrentXStatus = mutation({
       account &&
       account.status === "linked" &&
       typeof account.expiresAt === "number" &&
-      account.expiresAt <= Date.now()
+      account.expiresAt <= Date.now() &&
+      !account.encryptedRefreshToken
     ) {
       await ctx.db.patch(account._id, {
         status: "needs_reconnect",
@@ -162,6 +164,46 @@ export const markXNeedsReconnect = internalMutation({
     })
 
     return { status: "needs_reconnect" as const }
+  },
+})
+
+export const updateXTokenAfterRefresh = internalMutation({
+  args: {
+    accountId: v.id("accounts"),
+    encryptedAccessToken: v.object({
+      ciphertext: v.string(),
+      iv: v.string(),
+    }),
+    encryptedRefreshToken: v.optional(
+      v.object({
+        ciphertext: v.string(),
+        iv: v.string(),
+      })
+    ),
+    expiresAt: v.optional(v.number()),
+    scopes: v.optional(v.array(v.string())),
+  },
+  handler: async (ctx, args) => {
+    const account = await ctx.db.get(args.accountId)
+
+    if (!account || account.provider !== "x") {
+      return null
+    }
+
+    await ctx.db.patch(account._id, {
+      encryptedAccessToken: args.encryptedAccessToken,
+      ...(args.encryptedRefreshToken
+        ? { encryptedRefreshToken: args.encryptedRefreshToken }
+        : {}),
+      ...(typeof args.expiresAt === "number"
+        ? { expiresAt: args.expiresAt }
+        : {}),
+      ...(args.scopes ? { scopes: args.scopes } : {}),
+      status: "linked",
+      updatedAt: Date.now(),
+    })
+
+    return { status: "linked" as const }
   },
 })
 
@@ -332,6 +374,9 @@ export const completeXOAuth = internalMutation({
     }
 
     const now = Date.now()
+    const existingRefreshToken =
+      existingForUser?.encryptedRefreshToken ??
+      existingForXAccount?.encryptedRefreshToken
     const account = {
       userId: state.userId,
       profileId: state.profileId,
@@ -347,7 +392,9 @@ export const completeXOAuth = internalMutation({
       ...(args.displayName ? { displayName: args.displayName } : {}),
       ...(args.encryptedRefreshToken
         ? { encryptedRefreshToken: args.encryptedRefreshToken }
-        : {}),
+        : existingRefreshToken
+          ? { encryptedRefreshToken: existingRefreshToken }
+          : {}),
       ...(typeof args.expiresAt === "number"
         ? { expiresAt: args.expiresAt }
         : {}),

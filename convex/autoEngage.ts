@@ -8,9 +8,12 @@ import { internalAction, internalMutation, mutation } from "./_generated/server"
 
 const sixHoursMs = 6 * 60 * 60 * 1000
 const retryBufferMs = 60 * 60 * 1000
-const firstMinuteMs = 60 * 1000
+const earlyLikeWindowMs = 5 * 60 * 1000
+const initialScheduleWindowMs = 3 * 60 * 60 * 1000
 const maxSelectedAttempts = 50
 const reservationLeaseMs = 2 * 60 * 1000
+const tokenRefreshBufferMs = 5 * 60 * 1000
+const X_TOKEN_URL = "https://api.x.com/2/oauth2/token"
 const requiredXScopes = ["tweet.read", "users.read", "like.write"] as const
 const terminalAttemptStatuses = new Set<Doc<"engagementAttempts">["status"]>([
   "liked",
@@ -44,6 +47,28 @@ type EncryptedToken = {
   iv: string
 }
 
+type RefreshTokenResult =
+  | {
+      status: "refreshed"
+      accessToken: string
+      refreshToken?: string
+      expiresAt?: number
+      scopes?: string[]
+    }
+  | {
+      status: "failed"
+      code: string
+      message: string
+      httpStatus?: number
+    }
+
+type TokenResponse = {
+  access_token: string
+  refresh_token?: string
+  expires_in?: number
+  scope?: string
+}
+
 type ReserveAttemptResult =
   | {
       status:
@@ -61,12 +86,33 @@ type ReserveAttemptResult =
       accountId: Id<"accounts">
       providerAccountId: string
       encryptedAccessToken: EncryptedToken
+      encryptedRefreshToken?: EncryptedToken
+      expiresAt?: number
       deadlineAt: number
       attemptCount: number
     }
 
 function hasRequiredScopes(account: { scopes: string[] }) {
   return requiredXScopes.every((scope) => account.scopes.includes(scope))
+}
+
+function hasRefreshableTokenMaterial(
+  account: Doc<"accounts">
+): account is Doc<"accounts"> & {
+  encryptedAccessToken: EncryptedToken
+  encryptedRefreshToken: EncryptedToken
+} {
+  return Boolean(account.encryptedAccessToken && account.encryptedRefreshToken)
+}
+
+function shouldRefreshToken({
+  expiresAt,
+  now,
+}: {
+  expiresAt?: number
+  now: number
+}) {
+  return expiresAt !== undefined && expiresAt <= now + tokenRefreshBufferMs
 }
 
 function isRetryableStatus(status: Doc<"engagementAttempts">["status"]) {
@@ -160,31 +206,38 @@ function scheduledDelayMs({
   seed: string
   total: number
 }) {
-  const latestDelay = Math.max(0, deadlineAt - now - retryBufferMs)
-  const immediateCount = Math.min(
+  if (total <= 0) return 0
+
+  const latestDelay = Math.max(
+    0,
+    Math.min(initialScheduleWindowMs, deadlineAt - now - retryBufferMs)
+  )
+  const earlyCount = Math.min(
     total,
-    Math.max(1, Math.min(3, Math.ceil(total * 0.08)))
+    total <= 1 ? 1 : Math.max(2, Math.min(4, Math.ceil(total * 0.15)))
   )
 
-  if (index < immediateCount) {
-    return seededInt(seed, `immediate-${index}`, 0, firstMinuteMs)
-  }
+  if (index === 0) return 0
 
-  if (latestDelay <= firstMinuteMs || total <= immediateCount) {
+  const earlyWindow = Math.min(earlyLikeWindowMs, latestDelay)
+
+  if (index < earlyCount) {
     return seededInt(
       seed,
-      `fallback-${index}`,
-      0,
-      Math.min(firstMinuteMs, latestDelay)
+      `early-${index}`,
+      Math.min(15 * 1000, earlyWindow),
+      earlyWindow
     )
   }
 
-  const remainingSlots = Math.max(1, total - immediateCount)
-  const slot = index - immediateCount + 1
+  if (latestDelay <= earlyWindow) return latestDelay
+
+  const remainingSlots = Math.max(1, total - earlyCount)
+  const slot = index - earlyCount + 1
   const baseDelay =
-    firstMinuteMs + ((latestDelay - firstMinuteMs) * slot) / remainingSlots
-  const slotWidth = Math.max(1, (latestDelay - firstMinuteMs) / remainingSlots)
-  const jitterWidth = Math.min(10 * 60 * 1000, slotWidth * 0.45)
+    earlyWindow + ((latestDelay - earlyWindow) * slot) / remainingSlots
+  const slotWidth = Math.max(1, (latestDelay - earlyWindow) / remainingSlots)
+  const jitterWidth = Math.floor(slotWidth * 0.35)
   const jitter = seededInt(
     seed,
     `schedule-jitter-${index}`,
@@ -192,7 +245,7 @@ function scheduledDelayMs({
     Math.floor(jitterWidth)
   )
 
-  return Math.floor(clamp(baseDelay + jitter, firstMinuteMs, latestDelay))
+  return Math.floor(clamp(baseDelay + jitter, earlyWindow, latestDelay))
 }
 
 function engagementDeadline(request: Doc<"engagementRequests">) {
@@ -221,7 +274,9 @@ async function recalculateRequest(
   const request = await ctx.db.get(requestId)
   if (!request) return null
 
-  const attempts = await attemptsForRequest(ctx, requestId)
+  const attempts = (await attemptsForRequest(ctx, requestId)).filter(
+    (attempt) => attempt.userId !== request.requesterUserId
+  )
   const likedCount = attempts.filter(
     (attempt) =>
       attempt.status === "liked" || attempt.status === "already_liked"
@@ -311,6 +366,7 @@ async function scheduleSelectedAttempts(
 
   for (const attempt of attempts) {
     if (!isRetryableStatus(attempt.status)) continue
+    if (attempt.userId === request.requesterUserId) continue
     if (attempt.selectionStatus !== "selected") continue
 
     const dueAt = Math.max(
@@ -346,7 +402,9 @@ export const enqueueRequest = internalMutation({
 
     const attempts = await attemptsForRequest(ctx, args.requestId)
     const alreadySelected = attempts.filter(
-      (attempt) => attempt.selectionStatus === "selected"
+      (attempt) =>
+        attempt.userId !== request.requesterUserId &&
+        attempt.selectionStatus === "selected"
     )
     if (alreadySelected.length > 0 || (request.selectedAttemptCount ?? 0) > 0) {
       await scheduleSelectedAttempts(ctx, request, attempts, now)
@@ -358,6 +416,7 @@ export const enqueueRequest = internalMutation({
       .filter(
         (attempt): attempt is SelectedAttempt =>
           attempt.status === "pending" &&
+          attempt.userId !== request.requesterUserId &&
           Boolean(attempt.accountId) &&
           Boolean(attempt.providerAccountId)
       )
@@ -485,6 +544,17 @@ export const reserveAttempt = internalMutation({
     if (!request || request.status === "canceled") {
       return { status: "noop" as const }
     }
+    if (attempt.userId === request.requesterUserId) {
+      await ctx.db.patch(attempt._id, {
+        status: "skipped_not_selected",
+        selectionStatus: "not_selected",
+        skipReason: "not_selected",
+        completedAt: Date.now(),
+        updatedAt: Date.now(),
+      })
+      await recalculateRequest(ctx, request._id)
+      return { status: "noop" as const }
+    }
     if (request.autoEngageStatus === "paused") {
       return { status: "paused" as const }
     }
@@ -521,9 +591,8 @@ export const reserveAttempt = internalMutation({
       !account ||
       account.provider !== "x" ||
       account.status !== "linked" ||
-      !account.encryptedAccessToken ||
       !hasRequiredScopes(account) ||
-      (account.expiresAt !== undefined && account.expiresAt <= now)
+      !hasRefreshableTokenMaterial(account)
     ) {
       if (account && account.provider === "x" && account.status === "linked") {
         await ctx.db.patch(account._id, {
@@ -555,6 +624,8 @@ export const reserveAttempt = internalMutation({
       accountId: account._id,
       providerAccountId: account.providerAccountId,
       encryptedAccessToken: account.encryptedAccessToken,
+      encryptedRefreshToken: account.encryptedRefreshToken,
+      expiresAt: account.expiresAt,
       deadlineAt,
       attemptCount: attempt.attemptCount,
     }
@@ -599,6 +670,13 @@ export const confirmReservedAttemptForCall = internalMutation({
       await recalculateRequest(ctx, request._id)
       return { status: "expired" as const }
     }
+    if (attempt.userId === request.requesterUserId) {
+      await ctx.db.patch(attempt._id, {
+        reservationExpiresAt: undefined,
+        updatedAt: now,
+      })
+      return { status: "noop" as const }
+    }
 
     if (
       attempt.selectionStatus !== "selected" ||
@@ -624,7 +702,60 @@ export const performLike = internalAction({
       return { status: reservation.status }
     }
 
-    const accessToken = await decryptToken(reservation.encryptedAccessToken)
+    let accessToken = await decryptToken(reservation.encryptedAccessToken)
+    if (
+      shouldRefreshToken({
+        expiresAt: reservation.expiresAt,
+        now: Date.now(),
+      })
+    ) {
+      if (!reservation.encryptedRefreshToken) {
+        await ctx.runMutation(internal.accounts.markXNeedsReconnect, {
+          accountId: reservation.accountId,
+        })
+        await ctx.runMutation(internal.autoEngage.recordAttemptOutcome, {
+          attemptId: reservation.attemptId,
+          outcome: "failed_final",
+          code: "x_refresh_token_missing",
+          message: "X account needs reconnect.",
+        })
+        return { status: "failed" as const }
+      }
+
+      const refreshResult = await refreshXAccessToken(
+        await decryptToken(reservation.encryptedRefreshToken)
+      )
+      if (refreshResult.status === "failed") {
+        await ctx.runMutation(internal.accounts.markXNeedsReconnect, {
+          accountId: reservation.accountId,
+        })
+        await ctx.runMutation(internal.autoEngage.recordAttemptOutcome, {
+          attemptId: reservation.attemptId,
+          outcome: "failed_final",
+          code: refreshResult.code,
+          message: refreshResult.message,
+        })
+        return { status: "failed" as const }
+      }
+
+      accessToken = refreshResult.accessToken
+      await ctx.runMutation(internal.accounts.updateXTokenAfterRefresh, {
+        accountId: reservation.accountId,
+        encryptedAccessToken: await encryptToken(refreshResult.accessToken),
+        ...(refreshResult.refreshToken
+          ? {
+              encryptedRefreshToken: await encryptToken(
+                refreshResult.refreshToken
+              ),
+            }
+          : {}),
+        ...(typeof refreshResult.expiresAt === "number"
+          ? { expiresAt: refreshResult.expiresAt }
+          : {}),
+        ...(refreshResult.scopes ? { scopes: refreshResult.scopes } : {}),
+      })
+    }
+
     const preflight = await ctx.runMutation(
       internal.autoEngage.confirmReservedAttemptForCall,
       { attemptId: args.attemptId }
@@ -1041,6 +1172,61 @@ async function likeXPost({
   }
 }
 
+async function refreshXAccessToken(
+  refreshToken: string
+): Promise<RefreshTokenResult> {
+  const clientId = getRequiredEnv("X_CLIENT_ID")
+  const clientSecret = process.env.X_CLIENT_SECRET?.trim()
+  const body = new URLSearchParams({
+    grant_type: "refresh_token",
+    refresh_token: refreshToken,
+  })
+  const headers: Record<string, string> = {
+    "Content-Type": "application/x-www-form-urlencoded",
+  }
+
+  if (clientSecret) {
+    headers.Authorization = `Basic ${btoa(`${clientId}:${clientSecret}`)}`
+  } else {
+    body.set("client_id", clientId)
+  }
+
+  const response = await fetch(X_TOKEN_URL, {
+    method: "POST",
+    headers,
+    body,
+  })
+
+  if (!response.ok) {
+    const error = await parseXError(response)
+    return {
+      status: "failed",
+      code: error.code ?? `x_refresh_${response.status}`,
+      message: error.message ?? "X account needs reconnect.",
+      httpStatus: response.status,
+    }
+  }
+
+  const token = (await response.json()) as Partial<TokenResponse>
+  if (!token.access_token) {
+    return {
+      status: "failed",
+      code: "x_refresh_missing_access_token",
+      message: "X account needs reconnect.",
+    }
+  }
+
+  return {
+    status: "refreshed",
+    accessToken: token.access_token,
+    ...(token.refresh_token ? { refreshToken: token.refresh_token } : {}),
+    ...(typeof token.expires_in === "number"
+      ? { expiresAt: Date.now() + token.expires_in * 1000 }
+      : {}),
+    ...(token.scope ? { scopes: normalizeScopes(token.scope) } : {}),
+  }
+}
+
 async function parseXError(response: Response) {
   const text = await response.text()
   let code: string | undefined
@@ -1111,6 +1297,13 @@ function getRequiredEnv(name: string) {
   return value
 }
 
+function normalizeScopes(value: string) {
+  return value
+    .split(/\s+/)
+    .map((scope) => scope.trim())
+    .filter(Boolean)
+}
+
 function base64UrlDecode(value: string) {
   const normalized = value.replace(/-/g, "+").replace(/_/g, "/")
   const padded = normalized.padEnd(
@@ -1147,4 +1340,41 @@ async function decryptToken(encryptedToken: EncryptedToken) {
   )
 
   return new TextDecoder().decode(plaintext)
+}
+
+async function encryptToken(token: string): Promise<EncryptedToken> {
+  const rawKey = base64UrlDecode(getRequiredEnv("X_TOKEN_ENCRYPTION_KEY"))
+  if (rawKey.byteLength !== 32) {
+    throw new ConvexError("X token encryption is not configured correctly.")
+  }
+
+  const key = await crypto.subtle.importKey(
+    "raw",
+    rawKey,
+    { name: "AES-GCM" },
+    false,
+    ["encrypt"]
+  )
+  const iv = new Uint8Array(12)
+  crypto.getRandomValues(iv)
+  const ciphertext = await crypto.subtle.encrypt(
+    { name: "AES-GCM", iv },
+    key,
+    new TextEncoder().encode(token)
+  )
+
+  return {
+    ciphertext: base64UrlEncode(new Uint8Array(ciphertext)),
+    iv: base64UrlEncode(iv),
+  }
+}
+
+function base64UrlEncode(bytes: Uint8Array) {
+  let binary = ""
+
+  for (const byte of bytes) {
+    binary += String.fromCharCode(byte)
+  }
+
+  return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "")
 }

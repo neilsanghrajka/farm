@@ -151,13 +151,13 @@ Acceptance criteria:
 
 After an engagement request is created, Farm attempts to like the post from a
 bounded cohort of eligible connected X accounts in the selected private Farm
-using official X APIs. The request creator's own account is part of the same
-eligible candidate pool when the creator is an active member of the selected
-Farm and has an eligible linked X account.
+using official X APIs. The request creator's own account is excluded from the
+target pool so Farm does not count or schedule an own-like.
 
 Acceptance criteria:
 
 - Farm attempts likes only for members of the selected Farm.
+- Farm does not attempt a like from the request creator's own account.
 - Farm attempts likes only through linked X accounts with valid authorization.
 - Farm records success, failure, skipped, or pending status per eligible member/account.
 - Farm does not attempt engagement for users who have not linked X.
@@ -167,8 +167,8 @@ Acceptance criteria:
   maximum is a ceiling, not the target.
 - Large eligible Farms should not produce the same selected-like count for
   every request solely because they exceed the 50-attempt ceiling.
-- Farm settles selected attempts within six hours and does not retry
-  indefinitely.
+- Farm gives immediate visible movement where possible, staggers first attempts
+  over three hours, and does not retry indefinitely past the six-hour deadline.
 - Farm remains private and invite-only, with no public marketplace,
   leaderboards, rewards, reciprocity scores, or other incentive mechanics.
 
@@ -223,6 +223,14 @@ Acceptance criteria:
 - Notifications when a request is created, completed, or needs attention.
 
 ## Amendments
+
+### 2026-05-07: Instant Reward, Self-Exclusion, and Token Refresh
+
+Auto Engage now excludes the requester from target attempts and visible stats,
+schedules one selected like immediately with a small early cohort in the first
+five minutes, staggers remaining first attempts over three hours, and uses
+stored X refresh tokens so eligible linked accounts can continue through the
+processing window without reconnecting every two hours.
 
 ### 2026-05-07: Staggered Auto Engage Guardrails
 

@@ -24,8 +24,8 @@ processing window.
 - Keep `engagementRequests` and `engagementAttempts` as the durable source of
   truth for request state, per-member outcomes, and live UI updates.
 - Process likes for active members of the selected private Farm only.
-- Use eligible linked X accounts only: account is linked, not expired, has
-  usable token material, and includes `tweet.read users.read like.write`.
+- Use eligible linked X accounts only: account is linked, has usable access and
+  refresh token material, and includes `tweet.read users.read like.write`.
 - Select a variable, deterministic subset of eligible linked accounts for each
   request. The target should be roughly 90% for normal-sized Farms, but the
   hard cap of 50 is a ceiling, not the target.
@@ -38,11 +38,12 @@ processing window.
 - For Farms large enough to hit the 50-attempt ceiling, derive a per-request
   effective cap below or equal to 50, for example 35-50 selected attempts, so
   large requests do not all settle at exactly 50 Farm likes.
-- Treat the requester as part of the eligible candidate pool when they are an
-  active Farm member with an eligible linked X account; do not force-select the
-  requester outside the cohort rule.
-- Stagger selected attempts with deterministic request/account jitter so all
-  selected attempts can settle within six hours.
+- Exclude the requester from the eligible candidate pool. Farm should not create,
+  schedule, count, or display an own-like attempt for the user who submitted the
+  post.
+- Stagger selected attempts with deterministic request/account jitter: one
+  immediate attempt, a small early cohort in the first five minutes, and the
+  remaining first attempts across the first three hours.
 - Make the 6-hour request window a hard cap. No attempt or retry may continue
   after the request deadline.
 - Mark members who are missing X, ineligible, not selected by the cohort, or
@@ -121,10 +122,10 @@ Key layout decisions:
   displayed as generic `Skipped`; do not surface internal policy reasons.
 - Active requests should show pacing copy: `A few likes start now. The rest
   roll in over the next few hours.`
-- The first selected likes should be scheduled quickly so the active Post detail
-  state can show immediate movement in roughly the first minute when eligible
-  accounts and X API availability allow it. This is a UX/product pacing goal,
-  not a guarantee that every request will receive a like within 60 seconds.
+- The first selected like should be scheduled immediately and a small early
+  cohort should run within five minutes when eligible accounts and X API
+  availability allow it. This is a UX/product pacing goal, not a guarantee that
+  every request will receive a like within five minutes.
 - Paused requests should show `Auto likes are paused for this post. Pending
   likes will not run until resumed.`
 - Stopped/unavailable requests should show `Farm stopped processing this request
@@ -167,14 +168,15 @@ status, limited blast radius, and no incentive or marketplace mechanics.
   1. Home validates and canonicalizes the X post URL through the existing
      request-creation flow.
   2. Convex creates an `engagementRequests` row and one
-     `engagementAttempts` row per active Farm member.
+     `engagementAttempts` row per active Farm member except the requester.
   3. Missing and ineligible X accounts become skipped immediately.
-  4. Eligible linked accounts enter the candidate pool.
+  4. Eligible linked accounts, excluding the requester, enter the candidate pool.
   5. Auto Engage deterministically selects the request cohort: small-Farm rule,
      seeded ratio near 90% for larger Farms, and a variable per-request cap
      that never exceeds 50 selected attempts.
-  6. Convex schedules selected attempt jobs with stagger and jitter inside the
-     six-hour request deadline.
+  6. Convex schedules selected attempt jobs with one immediate attempt, a small
+     early cohort in the first five minutes, and remaining first attempts within
+     three hours while keeping the six-hour retry deadline.
   7. Each job calls the official X like endpoint and records the attempt
      outcome.
   8. The request-status page updates through Convex queries as attempts settle.
@@ -482,15 +484,15 @@ Exact names may vary, but implementation agents should keep this shape:
 
 - `internal.autoEngage.enqueueRequest`
   - Loads request and pending/skipped attempt snapshot.
-  - Builds eligible candidate pool.
+  - Builds eligible candidate pool, excluding the requester.
   - Applies small-Farm rule, seeded ratio selection, and variable per-request
     cap that never exceeds 50.
   - Marks unselected/capped eligible attempts as skipped.
   - Writes selected scheduling metadata.
-  - Schedules some selected attempts to run quickly, ideally within the first
-    minute when capacity and X API availability allow it.
-  - Schedules remaining selected per-attempt actions across the six-hour window
-    and schedules a deadline finalizer.
+  - Schedules the first selected attempt immediately and a small early cohort in
+    the first five minutes.
+  - Schedules remaining selected first attempts across the first three hours and
+    schedules a six-hour deadline finalizer.
 
 - `internal.autoEngage.performLike`
   - Accepts `attemptId`.
@@ -618,11 +620,11 @@ agents or by the user, and they must re-read files immediately before patching.
   effective cap varies by request seed while never exceeding 50.
 - Unselected eligible accounts become skipped.
 - Cap-exceeded eligible accounts become skipped.
-- Initial schedules fit inside roughly the first five hours, leaving retry and
-  deadline-finalization buffer.
-- At least one small initial batch is scheduled quickly, targeting visible
-  movement in the first minute when eligible accounts and X API availability
-  allow it.
+- Initial first-attempt schedules fit inside roughly the first three hours,
+  leaving retry and deadline-finalization buffer.
+- One selected attempt is scheduled immediately, and a small early cohort
+  targets visible movement within five minutes when eligible accounts and X API
+  availability allow it.
 - Paused requests do not process pending X like jobs.
 - Resumed requests continue only before the original six-hour deadline.
 - Deleted/private/unavailable post responses stop remaining Auto Engage
@@ -756,8 +758,9 @@ explicitly asked.
 - Selection follows the small-Farm, seeded ratio, and variable-cap cohort rules.
 - Large requests do not all settle at exactly 50 Farm likes solely because the
   hard ceiling is 50.
-- The request creator is eligible through the same cohort rule as other active
-  members, not force-selected separately.
+- The request creator is excluded from target attempts, aggregate stats, and
+  activity rows. Legacy self-attempt rows are not selected, reserved, counted,
+  or shown.
 - Each selected attempt settles within six hours.
 - No retry or like call runs after `engagementDeadlineAt`.
 - Retryable failures use bounded retry policy and become terminal by deadline.
